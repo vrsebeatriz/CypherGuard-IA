@@ -88,8 +88,8 @@ app.post('/api/apply', (req, res) => {
   }
 });
 
-// Rota principal (serve o index.html)
-app.get('*', (req, res) => {
+// Rota principal (serve o index.html para qualquer outra rota)
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
