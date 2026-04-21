@@ -1,0 +1,8 @@
+ollama:
+  model: 'llama3'
+  temperature: 0.1
+entropy:
+  threshold: 5.0
+rules:
+  customPrompts:
+    sql-injection: "Foque especialmente em identificar se há o uso de query builders como Knex ou Sequelize."

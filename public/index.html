@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CypherGuard AI Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-white">
+  <div id="cursor"></div>
+
+  <!-- Ambient Background -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
+    <div class="liquid-blob bg-[#007bff]" style="width: 500px; height: 500px; top: -100px; left: -100px; animation-duration: 15s;"></div>
+    <div class="liquid-blob bg-purple-600" style="width: 400px; height: 400px; top: 40%; right: -100px; animation-duration: 20s; animation-delay: -5s;"></div>
+  </div>
+
+  <nav class="fixed w-full z-50 top-0 py-4">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="glass-panel rounded-full px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#29C5F6] to-[#3a4b9f] flex items-center justify-center shadow-[0_4px_10px_rgba(41,197,246,0.3)]">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          </div>
+          <span class="font-heading font-bold text-xl tracking-tighter">CYPHERGUARD AI</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="pt-32 pb-20 max-w-7xl mx-auto px-4">
+    <div class="text-center mb-12 reveal active">
+      <h1 class="font-heading text-5xl font-bold mb-4">Enterprise SAST Security</h1>
+      <p class="text-gray-400">Autonomous Code Remediation Powered by Llama 3</p>
+    </div>
+
+    <!-- Scan Input Area -->
+    <div class="glass-panel rounded-2xl p-8 mb-12 reveal active max-w-2xl mx-auto flex flex-col sm:flex-row gap-4">
+      <div class="flex-1">
+        <label class="block text-xs uppercase tracking-widest text-gray-400 mb-2">Target Path</label>
+        <input type="text" id="targetInput" value="test/more_vulnerabilities.js" 
+               class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#007bff] transition-colors font-mono text-sm">
+      </div>
+      <div class="flex items-end">
+        <button id="scanBtn" class="w-full sm:w-auto cursor-hover py-3 px-8 bg-[#007bff] rounded-xl text-white text-xs font-semibold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/40">
+          Start Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="hidden text-center py-12">
+      <div class="inline-block w-8 h-8 border-2 border-[#007bff] border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-sm text-[#007bff] font-mono tracking-widest uppercase animate-pulse">Running Semgrep & Llama 3...</p>
+    </div>
+
+    <!-- Results Grid -->
+    <div id="resultsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Cards will be injected here via JS -->
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

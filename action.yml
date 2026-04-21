@@ -1,0 +1,36 @@
+name: 'CypherGuard AI Scan'
+description: 'Next-generation SAST analysis with Local AI (Ollama)'
+author: 'Beatriz'
+inputs:
+  path:
+    description: 'Path to scan'
+    required: true
+    default: '.'
+  sarif:
+    description: 'Generate SARIF report'
+    required: false
+    default: 'true'
+  apply:
+    description: 'Apply automatic fixes (not recommended in CI without review)'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install Dependencies
+      run: npm install
+      shell: bash
+    - name: Build
+      run: npm run build
+      shell: bash
+    - name: Run CypherGuard AI
+      run: |
+        ARGS="scan ${{ inputs.path }}"
+        if [ "${{ inputs.sarif }}" == "true" ]; then ARGS="$ARGS --sarif"; fi
+        if [ "${{ inputs.apply }}" == "true" ]; then ARGS="$ARGS --apply"; fi
+        node dist/index.js $ARGS
+      shell: bash

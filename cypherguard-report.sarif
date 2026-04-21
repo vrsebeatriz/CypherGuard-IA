@@ -1,0 +1,49 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "CypherGuard AI",
+          "informationUri": "https://github.com/beatriz/cypherguard-ai",
+          "rules": [
+            {
+              "id": "javascript.lang.security.audit.code-string-concat.code-string-concat",
+              "shortDescription": {
+                "text": "Found data from an Express or Next web request flowing to `eval`. If this data is user-controllable this can lead to execution of arbitrary system commands in the context of your application process. Avoid `eval` whenever possible."
+              },
+              "properties": {
+                "category": "Security"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript.lang.security.audit.code-string-concat.code-string-concat",
+          "level": "error",
+          "message": {
+            "text": "[AI Validated] O uso de `eval` com uma string concatenada pode permitir a execução de comandos arbitrários no contexto do processo da aplicação. Além disso, o hardcoded secret `SECRET_KEY` também é um problema de segurança.\n\nCorreção Sugerida:\nN/A"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "C:\\Users\\beatriz\\CypherGuard IA\\test\\vulnerable.js"
+                },
+                "region": {
+                  "startLine": 19,
+                  "endLine": 19,
+                  "startColumn": 3,
+                  "endColumn": 40
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
