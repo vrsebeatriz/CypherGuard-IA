@@ -23,7 +23,7 @@ app.get('/read', (req, res) => {
 // 3. XSS - Cross-Site Scripting (Vulnerável)
 app.get('/greet', (req, res) => {
   const name = req.query.name;
-  res.send("<h1>Olá, " + name + "</h1>");
+const safeHost = DOMPurify.sanitize(host);
 });
 
 // 4. Uso de Hashing Fraco (Vulnerável)

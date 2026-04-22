@@ -1,147 +1,206 @@
 // Custom Cursor Logic
 const cursor = document.getElementById('cursor');
+let mouseX = 0;
+let mouseY = 0;
+let cursorX = 0;
+let cursorY = 0;
 
 document.addEventListener('mousemove', (e) => {
-  cursor.style.left = e.clientX + 'px';
-  cursor.style.top = e.clientY + 'px';
+    mouseX = e.clientX;
+    mouseY = e.clientY;
 });
 
+function animateCursor() {
+    // Lerp (Linear Interpolation) for buttery smooth movement
+    cursorX += (mouseX - cursorX) * 0.2;
+    cursorY += (mouseY - cursorY) * 0.2;
+    
+    cursor.style.transform = `translate3d(${cursorX - 10}px, ${cursorY - 10}px, 0)`;
+    requestAnimationFrame(animateCursor);
+}
+
+animateCursor();
+
+// Update cursor state on hover
 document.addEventListener('mouseover', (e) => {
-  if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
-    cursor.classList.add('hovered');
-  } else {
-    cursor.classList.remove('hovered');
-  }
+    const target = e.target;
+    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('.cursor-hover')) {
+        cursor.classList.add('hovered');
+    } else {
+        cursor.classList.remove('hovered');
+    }
 });
+
+// Reveal Animations Logic
+const observerOptions = {
+    threshold: 0.1
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+        }
+    });
+}, observerOptions);
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
 // Scan Logic
+let currentAlerts = [];
 const scanBtn = document.getElementById('scanBtn');
 const targetInput = document.getElementById('targetInput');
 const loadingState = document.getElementById('loadingState');
 const resultsGrid = document.getElementById('resultsGrid');
 
 scanBtn.addEventListener('click', async () => {
-  const targetPath = targetInput.value.trim();
-  if (!targetPath) return alert('Por favor, insira um caminho válido.');
+    const targetPath = targetInput.value.trim();
+    if (!targetPath) return alert('Por favor, insira um caminho válido.');
 
-  // UI State Update
-  scanBtn.disabled = true;
-  scanBtn.classList.add('opacity-50');
-  resultsGrid.innerHTML = '';
-  loadingState.classList.remove('hidden');
+    // UI State Update
+    scanBtn.disabled = true;
+    scanBtn.classList.add('opacity-50');
+    resultsGrid.innerHTML = '';
+    loadingState.classList.remove('hidden');
+    loadingState.classList.add('active');
 
-  try {
-    const response = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetPath })
-    });
+    try {
+        const response = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetPath })
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (response.ok) {
-      renderResults(data.results, targetPath);
-    } else {
-      alert(`Erro: ${data.error}`);
+        if (response.ok) {
+            currentAlerts = data.results;
+            renderResults(data.results, targetPath);
+        } else {
+            alert(`Erro: ${data.error}`);
+            loadingState.classList.add('hidden');
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50');
+        }
+    } catch (error) {
+        alert('Erro de comunicação com o servidor local.');
+        loadingState.classList.add('hidden');
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
     }
-  } catch (error) {
-    alert('Erro de comunicação com o servidor local.');
-  } finally {
-    loadingState.classList.add('hidden');
-    scanBtn.disabled = false;
-    scanBtn.classList.remove('opacity-50');
-  }
 });
 
 function renderResults(alerts, targetPath) {
-  if (alerts.length === 0) {
-    resultsGrid.innerHTML = `
-      <div class="col-span-full text-center py-12 glass-panel rounded-2xl">
-        <h3 class="text-xl text-white mb-2">Nenhuma vulnerabilidade detectada!</h3>
-        <p class="text-gray-400">O código está limpo de acordo com as heurísticas e validações da IA.</p>
-      </div>`;
-    return;
-  }
+    resultsGrid.innerHTML = '';
+    loadingState.classList.add('hidden');
+    scanBtn.disabled = false;
+    scanBtn.classList.remove('opacity-50');
+    resultsGrid.classList.add('active');
 
-  alerts.forEach((alert, index) => {
-    const isTruePositive = alert.aiValidation.status === 'True Positive';
-    const severityColor = alert.aiValidation.gravidade === 'Alta' ? 'text-red-400' : 
-                          alert.aiValidation.gravidade === 'Media' ? 'text-yellow-400' : 'text-green-400';
-    
-    const card = document.createElement('div');
-    card.className = `glass-panel p-6 rounded-2xl reveal`;
-    // Add a slight delay for staggered animation
-    setTimeout(() => card.classList.add('active'), index * 100);
+    if (!alerts || alerts.length === 0) {
+        resultsGrid.innerHTML = `
+            <div class="col-span-full py-20 flex flex-col items-center justify-center reveal active">
+                <div class="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                    <span class="iconify text-emerald-500" data-icon="lucide:shield-check" data-width="40"></span>
+                </div>
+                <h3 class="font-heading text-2xl font-semibold text-white mb-2">Codebase is Secure</h3>
+                <p class="text-sm text-gray-500 font-mono uppercase tracking-widest">No critical vulnerabilities detected by AI</p>
+            </div>
+        `;
+        return;
+    }
 
-    let html = `
-      <div class="flex justify-between items-start mb-4">
-        <div class="text-xs font-mono text-gray-500 uppercase tracking-widest truncate w-3/4" title="${alert.finding.path}">
-          Linha ${alert.finding.start.line}
-        </div>
-        <span class="px-2 py-1 text-[10px] uppercase font-bold rounded bg-black/50 ${severityColor}">
-          ${alert.aiValidation.status}
-        </span>
-      </div>
-      
-      <h3 class="font-heading text-lg font-medium text-white mb-2 truncate" title="${alert.finding.check_id}">
-        ${alert.finding.check_id.split('.').pop()}
-      </h3>
-      
-      <p class="text-sm text-gray-400 mb-4 h-16 overflow-y-auto">
-        ${alert.aiValidation.explicacao}
-      </p>
-
-      <div class="space-y-4">
-        <div>
-          <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1 block">Código Original</span>
-          <pre><code class="text-red-300">${escapeHtml(alert.finding.extra.lines)}</code></pre>
-        </div>
-    `;
-
-    if (isTruePositive && alert.aiValidation.correcao) {
-      html += `
-        <div>
-          <span class="text-[10px] uppercase tracking-widest text-gray-500 mb-1 block">Correção Sugerida (IA)</span>
-          <pre><code class="text-green-300">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
-        </div>
+    alerts.forEach((alert, index) => {
+        const isTruePositive = alert.aiValidation.status === 'True Positive';
+        const severityColor = isTruePositive ? 'text-red-400' : 'text-emerald-400';
         
-        <button onclick="applyFix('${escapeHtml(alert.finding.path)}', ${alert.finding.start.line}, ${alert.finding.end.line}, \`${escapeHtml(alert.aiValidation.correcao).replace(/`/g, '\\`')}\`)" 
-                class="w-full mt-4 py-2 px-4 glass-panel border border-white/10 rounded-xl text-white text-xs font-semibold uppercase tracking-widest hover:bg-[#007bff] hover:border-[#007bff] transition-all duration-300">
-          Aplicar Correção
-        </button>
-      `;
-    }
+        const card = document.createElement('div');
+        card.className = `glass-panel p-8 rounded-3xl reveal cursor-hover group`;
+        setTimeout(() => card.classList.add('active'), index * 100);
 
-    html += `</div>`;
-    card.innerHTML = html;
-    resultsGrid.appendChild(card);
-  });
-}
+        let html = `
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full ${isTruePositive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></div>
+                    <span class="text-[10px] font-mono text-gray-500 uppercase tracking-widest truncate max-w-[200px]" title="${alert.finding.path}">
+                        ${alert.finding.path.split('/').pop()} : ${alert.finding.start.line}
+                    </span>
+                </div>
+                <span class="px-2 py-1 text-[8px] uppercase font-bold rounded bg-black/40 border border-white/5 ${severityColor}">
+                    ${alert.aiValidation.status}
+                </span>
+            </div>
+            
+            <h3 class="font-heading text-xl font-semibold text-white mb-3 tracking-tight">
+                ${alert.finding.check_id.split('.').pop().replace(/-/g, ' ')}
+            </h3>
+            
+            <p class="text-sm text-gray-400 mb-6 leading-relaxed">
+                ${alert.aiValidation.explicacao}
+            </p>
 
-async function applyFix(filePath, startLine, endLine, correction) {
-  try {
-    // Unescape the HTML so the backend gets the raw code
-    const rawCorrection = unescapeHtml(correction);
-    
-    const response = await fetch('/api/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath, startLine, endLine, correction: rawCorrection })
+            <div class="space-y-6">
+                <div class="relative">
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-gray-600 mb-2 block">Vulnerable Pattern</span>
+                    <pre><code class="text-red-300/80">${escapeHtml(alert.finding.extra.lines)}</code></pre>
+                </div>
+        `;
+
+        if (isTruePositive && alert.aiValidation.correcao) {
+            html += `
+                <div class="relative pt-4 border-t border-white/5">
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-[#007bff] mb-2 block">AI Suggested Patch</span>
+                    <pre><code class="text-emerald-300/80">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
+                </div>
+                
+                <button onclick="applyFix(${index})" 
+                        class="w-full mt-6 py-3 px-4 bg-[#007bff] rounded-xl text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/20 group-hover:scale-[1.02]">
+                    Apply Security Patch
+                </button>
+            `;
+        }
+
+        html += `</div>`;
+        card.innerHTML = html;
+        resultsGrid.appendChild(card);
     });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      alert('Correção aplicada com sucesso no arquivo!');
-    } else {
-      alert(`Erro: ${data.error}`);
-    }
-  } catch (error) {
-    alert('Erro ao comunicar com o servidor para aplicar o patch.');
-  }
 }
 
-// Utility functions to prevent XSS in our own dashboard!
+async function applyFix(index) {
+    const alert = currentAlerts[index];
+    if (!alert) return;
+
+    const { path: filePath, start: { line: startLine }, end: { line: endLine } } = alert.finding;
+    const correction = alert.aiValidation.correcao;
+
+    try {
+        const response = await fetch('/api/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filePath, startLine, endLine, correction })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alertSuccess('Patch applied successfully!');
+        } else {
+            alert(`Erro: ${data.error}`);
+        }
+    } catch (error) {
+        alert('Communication failure with local server.');
+    }
+}
+
+// Visual Alert Utility
+function alertSuccess(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 glass-panel px-8 py-4 rounded-full border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-[0.2em] z-[100] animate-bounce';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 function escapeHtml(unsafe) {
     return (unsafe || '').toString()
          .replace(/&/g, "&amp;")
@@ -149,13 +208,4 @@ function escapeHtml(unsafe) {
          .replace(/>/g, "&gt;")
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
-}
-
-function unescapeHtml(safe) {
-    return (safe || '').toString()
-         .replace(/&amp;/g, "&")
-         .replace(/&lt;/g, "<")
-         .replace(/&gt;/g, ">")
-         .replace(/&quot;/g, "\"")
-         .replace(/&#039;/g, "'");
 }

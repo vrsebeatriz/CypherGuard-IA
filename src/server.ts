@@ -28,41 +28,51 @@ app.post('/api/scan', async (req, res) => {
     return res.status(400).json({ error: 'targetPath is required' });
   }
 
+  console.log(`[Server] Recebida requisição de scan para: ${targetPath}`);
   const fullPath = path.resolve(process.cwd(), targetPath);
 
   if (!fs.existsSync(fullPath)) {
+    console.error(`[Server] Caminho não encontrado: ${fullPath}`);
     return res.status(404).json({ error: 'Arquivo ou diretório não encontrado.' });
   }
 
   try {
+    console.log(`[Server] Executando Semgrep (Camada 1)...`);
     const semgrepResults = await semgrep.scan(fullPath);
     
-    const processedAlerts = [];
-
-    for (const finding of semgrepResults.results) {
+    console.log(`[Server] Semgrep finalizado. Iniciando validação paralela de ${semgrepResults.results.length} alertas...`);
+    
+    const validationPromises = semgrepResults.results.map(async (finding, index) => {
+      const i = index;
+      console.log(`[Server] Analisando Alerta ${i + 1}/${semgrepResults.results.length}: ${finding.check_id}`);
+      
       const codeSnippet = finding.extra.lines;
       const suspiciousFlow = astAnalyzer.isFlowSuspicious(codeSnippet);
       
       if (!suspiciousFlow) {
-        processedAlerts.push({
+        console.log(`[Server] Alerta ${i + 1} mitigado via AST.`);
+        return {
           finding,
           aiValidation: { status: 'False Positive', gravidade: 'Nenhuma', explicacao: 'Mitigado via AST (Sanitizador detectado).' }
-        });
-        continue;
+        };
       }
 
+      console.log(`[Server] Solicitando auditoria Llama 3 para Alerta ${i + 1}...`);
       const aiResult = await aiValidator.validateAlert(
         codeSnippet,
         finding.check_id,
         finding.extra.message
       );
 
-      processedAlerts.push({
+      return {
         finding,
         aiValidation: aiResult
-      });
-    }
+      };
+    });
 
+    const processedAlerts = await Promise.all(validationPromises);
+
+    console.log(`[Server] Varredura completa enviada para o frontend.`);
     res.json({ results: processedAlerts });
 
   } catch (error: any) {
@@ -79,7 +89,10 @@ app.post('/api/apply', (req, res) => {
     return res.status(400).json({ error: 'Parâmetros incompletos.' });
   }
 
-  const success = Patcher.applyPatch(filePath, startLine, endLine, correction);
+  const fullPath = path.resolve(process.cwd(), filePath);
+  console.log(`[Server] Aplicando patch em: ${fullPath} (Linhas ${startLine}-${endLine})`);
+  
+  const success = Patcher.applyPatch(fullPath, startLine, endLine, correction);
 
   if (success) {
     res.json({ success: true, message: 'Correção aplicada com sucesso!' });
@@ -93,6 +106,16 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`\n🛡️ CypherGuard AI Local Interface rodando em http://localhost:${port}\n`);
+});
+
+server.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[Erro Crítico] A porta ${port} já está sendo usada por outro processo.`);
+    console.error(`Por favor, feche outros terminais ou processos do Node e tente novamente.\n`);
+  } else {
+    console.error(`\n[Erro Crítico] Falha ao iniciar o servidor:`, err.message);
+  }
+  process.exit(1);
 });

@@ -11,20 +11,24 @@ export class Patcher {
   public static applyPatch(filePath: string, startLine: number, endLine: number, fixedCode: string): boolean {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      const lines = content.split('\n');
+      const isCrlf = content.includes('\r\n');
+      const separator = isCrlf ? '\r\n' : '\n';
+      const lines = content.split(separator);
 
-      // Precisamos ser cuidadosos com o mapeamento de linhas do Semgrep vs o arquivo
-      // O Semgrep costuma ser preciso. Vamos substituir o bloco de linhas.
-      
+      if (startLine > lines.length || startLine < 1) {
+        throw new Error(`Linha de início ${startLine} fora do alcance (Total: ${lines.length})`);
+      }
+
       const before = lines.slice(0, startLine - 1);
       const after = lines.slice(endLine);
       
-      const newContent = [...before, fixedCode, ...after].join('\n');
+      const newContent = [...before, fixedCode, ...after].join(separator);
       
       fs.writeFileSync(filePath, newContent, 'utf8');
+      console.log(`[Patcher] Sucesso ao aplicar patch em ${filePath}`);
       return true;
-    } catch (e) {
-      console.error(`[-] Falha ao aplicar patch em ${filePath}:`, e);
+    } catch (e: any) {
+      console.error(`[Patcher] Erro ao aplicar patch em ${filePath}:`, e.message);
       return false;
     }
   }

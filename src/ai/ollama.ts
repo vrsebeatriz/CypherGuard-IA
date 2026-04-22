@@ -55,10 +55,16 @@ PARTE 1: Um objeto JSON contendo APENAS metadados. Não inclua código aqui.
   "explicacao": "Breve explicação técnica"
 }}
 
-PARTE 2: Se o status for "True Positive", forneça o código corrigido EXATAMENTE dentro de um bloco de código markdown, logo ABAIXO do JSON. Se for False Positive, não escreva a Parte 2.
+PARTE 2: Se o status for "True Positive", forneça o CÓDIGO CORRIGIDO EXATAMENTE dentro de um bloco de código markdown, logo ABAIXO do JSON. 
+REGRAS CRÍTICAS PARA A PARTE 2:
+- O código deve ser um substituto EXATO (drop-in replacement) para o bloco de código fornecido.
+- NÃO adicione comentários como "// Correção:" ou explicações.
+- NÃO invente variáveis, imports ou rotas que não existam no snippet original.
+- Retorne APENAS as linhas que substituem o código vulnerável, preservando o escopo original.
 Exemplo da Parte 2:
 \`\`\`javascript
-// seu código corrigido aqui
+const safeHost = sanitize(host);
+exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
 \`\`\`
 `);
 
