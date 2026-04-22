@@ -42,8 +42,10 @@ app.post('/api/scan', async (req, res) => {
     
     console.log(`[Server] Semgrep finalizado. Iniciando validação paralela de ${semgrepResults.results.length} alertas...`);
     
-    const validationPromises = semgrepResults.results.map(async (finding, index) => {
-      const i = index;
+    const processedAlerts = [];
+    
+    for (let i = 0; i < semgrepResults.results.length; i++) {
+      const finding = semgrepResults.results[i];
       console.log(`[Server] Analisando Alerta ${i + 1}/${semgrepResults.results.length}: ${finding.check_id}`);
       
       const codeSnippet = finding.extra.lines;
@@ -51,10 +53,11 @@ app.post('/api/scan', async (req, res) => {
       
       if (!suspiciousFlow) {
         console.log(`[Server] Alerta ${i + 1} mitigado via AST.`);
-        return {
+        processedAlerts.push({
           finding,
           aiValidation: { status: 'False Positive', gravidade: 'Nenhuma', explicacao: 'Mitigado via AST (Sanitizador detectado).' }
-        };
+        });
+        continue;
       }
 
       console.log(`[Server] Solicitando auditoria Llama 3 para Alerta ${i + 1}...`);
@@ -64,13 +67,11 @@ app.post('/api/scan', async (req, res) => {
         finding.extra.message
       );
 
-      return {
+      processedAlerts.push({
         finding,
         aiValidation: aiResult
-      };
-    });
-
-    const processedAlerts = await Promise.all(validationPromises);
+      });
+    }
 
     console.log(`[Server] Varredura completa enviada para o frontend.`);
     res.json({ results: processedAlerts });

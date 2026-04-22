@@ -1,5 +1,13 @@
-// Custom Cursor Logic
+let currentAlerts = [];
+
+// DOM Elements
 const cursor = document.getElementById('cursor');
+const scanBtn = document.getElementById('scanBtn');
+const targetInput = document.getElementById('targetInput');
+const loadingState = document.getElementById('loadingState');
+const resultsGrid = document.getElementById('resultsGrid');
+
+// Custom Cursor Logic (Optimized for Brave/Performance)
 let mouseX = 0;
 let mouseY = 0;
 let cursorX = 0;
@@ -11,51 +19,26 @@ document.addEventListener('mousemove', (e) => {
 });
 
 function animateCursor() {
-    // Lerp (Linear Interpolation) for buttery smooth movement
     cursorX += (mouseX - cursorX) * 0.2;
     cursorY += (mouseY - cursorY) * 0.2;
-    
     cursor.style.transform = `translate3d(${cursorX - 10}px, ${cursorY - 10}px, 0)`;
     requestAnimationFrame(animateCursor);
 }
-
 animateCursor();
 
-// Update cursor state on hover
+// Cursor Hover State
 document.addEventListener('mouseover', (e) => {
-    const target = e.target;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('.cursor-hover')) {
+    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
         cursor.classList.add('hovered');
     } else {
         cursor.classList.remove('hovered');
     }
 });
 
-// Reveal Animations Logic
-const observerOptions = {
-    threshold: 0.1
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-        }
-    });
-}, observerOptions);
-
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
 // Scan Logic
-let currentAlerts = [];
-const scanBtn = document.getElementById('scanBtn');
-const targetInput = document.getElementById('targetInput');
-const loadingState = document.getElementById('loadingState');
-const resultsGrid = document.getElementById('resultsGrid');
-
 scanBtn.addEventListener('click', async () => {
     const targetPath = targetInput.value.trim();
-    if (!targetPath) return alert('Por favor, insira um caminho válido.');
+    if (!targetPath) return showToast('Please enter a valid path.', 'error');
 
     // UI State Update
     scanBtn.disabled = true;
@@ -77,13 +60,13 @@ scanBtn.addEventListener('click', async () => {
             currentAlerts = data.results;
             renderResults(data.results, targetPath);
         } else {
-            alert(`Erro: ${data.error}`);
+            showToast(`Error: ${data.error}`, 'error');
             loadingState.classList.add('hidden');
             scanBtn.disabled = false;
             scanBtn.classList.remove('opacity-50');
         }
     } catch (error) {
-        alert('Erro de comunicação com o servidor local.');
+        showToast('Communication failure with local server.', 'error');
         loadingState.classList.add('hidden');
         scanBtn.disabled = false;
         scanBtn.classList.remove('opacity-50');
@@ -95,16 +78,12 @@ function renderResults(alerts, targetPath) {
     loadingState.classList.add('hidden');
     scanBtn.disabled = false;
     scanBtn.classList.remove('opacity-50');
-    resultsGrid.classList.add('active');
 
     if (!alerts || alerts.length === 0) {
         resultsGrid.innerHTML = `
-            <div class="col-span-full py-20 flex flex-col items-center justify-center reveal active">
-                <div class="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-                    <span class="iconify text-emerald-500" data-icon="lucide:shield-check" data-width="40"></span>
-                </div>
-                <h3 class="font-heading text-2xl font-semibold text-white mb-2">Codebase is Secure</h3>
-                <p class="text-sm text-gray-500 font-mono uppercase tracking-widest">No critical vulnerabilities detected by AI</p>
+            <div class="col-span-full py-16 text-center reveal active">
+                <span class="iconify text-white/10 mb-4 mx-auto" data-icon="lucide:shield-check" data-width="48"></span>
+                <p class="text-[10px] font-heading font-bold text-white/20 uppercase tracking-[0.3em]">Codebase Secure - No Threats Detected</p>
             </div>
         `;
         return;
@@ -115,46 +94,46 @@ function renderResults(alerts, targetPath) {
         const severityColor = isTruePositive ? 'text-red-400' : 'text-emerald-400';
         
         const card = document.createElement('div');
-        card.className = `glass-panel p-8 rounded-3xl reveal cursor-hover group`;
+        card.className = `glass-panel p-8 rounded-3xl reveal`;
         setTimeout(() => card.classList.add('active'), index * 100);
 
         let html = `
-            <div class="flex justify-between items-start mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full ${isTruePositive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></div>
-                    <span class="text-[10px] font-mono text-gray-500 uppercase tracking-widest truncate max-w-[200px]" title="${alert.finding.path}">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full ${isTruePositive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></span>
+                    <span class="text-[9px] font-mono text-white/40 uppercase tracking-widest">
                         ${alert.finding.path.split('/').pop()} : ${alert.finding.start.line}
                     </span>
                 </div>
-                <span class="px-2 py-1 text-[8px] uppercase font-bold rounded bg-black/40 border border-white/5 ${severityColor}">
+                <span class="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-white/5 border border-white/5 ${severityColor}">
                     ${alert.aiValidation.status}
                 </span>
             </div>
             
-            <h3 class="font-heading text-xl font-semibold text-white mb-3 tracking-tight">
+            <h3 class="font-heading text-lg font-semibold text-white mb-3 tracking-tight">
                 ${alert.finding.check_id.split('.').pop().replace(/-/g, ' ')}
             </h3>
             
-            <p class="text-sm text-gray-400 mb-6 leading-relaxed">
+            <p class="text-xs text-white/50 mb-6 leading-relaxed font-light">
                 ${alert.aiValidation.explicacao}
             </p>
 
             <div class="space-y-6">
-                <div class="relative">
-                    <span class="text-[10px] uppercase tracking-[0.2em] text-gray-600 mb-2 block">Vulnerable Pattern</span>
-                    <pre><code class="text-red-300/80">${escapeHtml(alert.finding.extra.lines)}</code></pre>
+                <div>
+                    <span class="text-[9px] uppercase tracking-[0.2em] text-white/20 mb-2 block font-bold">Vulnerable Snippet</span>
+                    <pre><code>${escapeHtml(alert.finding.extra.lines)}</code></pre>
                 </div>
         `;
 
         if (isTruePositive && alert.aiValidation.correcao) {
             html += `
-                <div class="relative pt-4 border-t border-white/5">
-                    <span class="text-[10px] uppercase tracking-[0.2em] text-[#007bff] mb-2 block">AI Suggested Patch</span>
-                    <pre><code class="text-emerald-300/80">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
+                <div class="pt-4 border-t border-white/5">
+                    <span class="text-[9px] uppercase tracking-[0.2em] text-[#007bff] mb-2 block font-bold">AI Suggested Patch</span>
+                    <pre><code class="text-blue-100/80">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
                 </div>
                 
                 <button onclick="applyFix(${index})" 
-                        class="w-full mt-6 py-3 px-4 bg-[#007bff] rounded-xl text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/20 group-hover:scale-[1.02]">
+                        class="w-full mt-6 py-3 px-4 bg-[#007bff] rounded-xl text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/20">
                     Apply Security Patch
                 </button>
             `;
@@ -180,25 +159,15 @@ async function applyFix(index) {
             body: JSON.stringify({ filePath, startLine, endLine, correction })
         });
 
-        const data = await response.json();
-
         if (response.ok) {
-            alertSuccess('Patch applied successfully!');
+            showToast('Security patch applied successfully!', 'success');
         } else {
-            alert(`Erro: ${data.error}`);
+            const data = await response.json();
+            showToast(`Error: ${data.error}`, 'error');
         }
     } catch (error) {
-        alert('Communication failure with local server.');
+        showToast('Communication failure.', 'error');
     }
-}
-
-// Visual Alert Utility
-function alertSuccess(message) {
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 glass-panel px-8 py-4 rounded-full border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-[0.2em] z-[100] animate-bounce';
-    toast.innerText = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
 }
 
 function escapeHtml(unsafe) {
@@ -209,3 +178,32 @@ function escapeHtml(unsafe) {
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
 }
+
+function showToast(message, type = 'success') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    const toast = document.createElement('div');
+    const isError = type === 'error';
+    
+    toast.className = `glass-panel px-6 py-4 rounded-2xl flex items-center gap-4 transform transition-all duration-500 translate-x-full opacity-0 pointer-events-auto border-l-4 ${isError ? 'border-l-red-500 bg-red-500/5' : 'border-l-emerald-500 bg-emerald-500/5'}`;
+    
+    toast.innerHTML = `
+        <span class="iconify ${isError ? 'text-red-500' : 'text-emerald-500'}" data-icon="${isError ? 'lucide:alert-circle' : 'lucide:check-circle'}" data-width="20"></span>
+        <span class="text-xs font-semibold text-white tracking-wide">${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-x-full', 'opacity-0');
+    });
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+}
+

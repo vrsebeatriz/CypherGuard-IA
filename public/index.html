@@ -3,109 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CypherGuard AI | Enterprise Dashboard</title>
-    <!-- Tailwind CSS CDN -->
+    <title>CypherGuard AI | Liquid Glass Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Iconify -->
     <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        heading: ['Montserrat', 'Prompt', 'sans-serif'],
-                        body: ['Open Sans', 'Prompt', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body class="selection:bg-[#007bff]/50 selection:text-white">
 
     <div id="cursor"></div>
     <div class="noise-overlay"></div>
 
-    <!-- Liquid Background Layer -->
+    <!-- Liquid Background Layer (Strictly DS inspired but Blue/Cyan) -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
-        <div class="liquid-blob bg-[#007bff]" style="width: 600px; height: 600px; top: -150px; left: -150px; opacity: 0.15; animation-duration: 18s;"></div>
-        <div class="liquid-blob bg-cyan-600" style="width: 700px; height: 700px; bottom: -200px; left: 10%; opacity: 0.1; animation-duration: 30s; animation-delay: -8s;"></div>
+        <div class="liquid-blob bg-[#007bff]" style="width: 600px; height: 600px; top: -150px; left: -150px; opacity: 0.15;"></div>
+        <div class="liquid-blob bg-cyan-600" style="width: 500px; height: 500px; bottom: -100px; right: 10%; opacity: 0.1;"></div>
     </div>
 
-    <!-- Navigation Header -->
+    <!-- Navigation Header (Strictly as per DS) -->
     <header class="fixed top-0 w-full z-[60] py-6 px-4">
         <div class="max-w-7xl mx-auto">
             <div class="glass-panel rounded-full px-8 py-4 flex items-center justify-between">
-                <div class="logo-container">
-                    <div class="logo-icon">
-                        <span class="iconify text-white" data-icon="lucide:shield-check" data-width="20"></span>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#29C5F6] to-[#007bff] flex items-center justify-center shadow-[0_4px_10px_rgba(41,197,246,0.3)]">
+                        <span class="iconify text-white" data-icon="lucide:shield-check" data-width="18"></span>
                     </div>
-                    <span class="font-heading font-bold text-xl tracking-tighter text-white">CYPHERGUARD AI</span>
+                    <span class="font-heading font-bold text-xl tracking-tighter text-white uppercase">CypherGuard AI</span>
                 </div>
                 <div class="hidden md:flex items-center gap-8">
-                    <span class="text-[10px] uppercase tracking-widest text-white/40">Enterprise Security Platform</span>
-                    <div class="h-4 w-px bg-white/10"></div>
-                    <span class="text-[10px] uppercase tracking-widest text-white/70">v1.0.4 - Local Node</span>
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-white/40">Local Security Node</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="pt-32 pb-20 px-6 max-w-7xl mx-auto min-h-screen">
+    <main class="pt-40 pb-24 max-w-7xl mx-auto px-6">
         
         <!-- Hero Section -->
         <section class="text-center mb-16 reveal active">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel mb-8">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#007bff] animate-pulse shadow-[0_0_10px_#007bff]"></span>
-                <span class="text-[10px] uppercase tracking-[0.2em] text-gray-300">Autonomous Remediation Engine</span>
+            <div class="mb-8">
+                <div class="glass-panel inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#007bff] animate-pulse shadow-[0_0_10px_#007bff]"></span>
+                    <span class="text-[10px] uppercase tracking-[0.2em] text-gray-300">Security Platform</span>
+                </div>
             </div>
             
-            <h1 class="font-heading text-5xl md:text-7xl font-semibold leading-tight tracking-tight text-white mb-6">
-                Smarter <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/40">Security Analysis</span>
+            <h1 class="font-heading text-6xl md:text-8xl font-semibold leading-[0.85] tracking-tight text-white mb-8">
+                <span class="block">SECURITY</span>
+                <span class="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/20">INTELLIGENCE</span>
             </h1>
-            <p class="text-lg text-gray-400 font-light max-w-2xl mx-auto leading-relaxed mb-12">
-                Harness the power of Semgrep and Llama 3 to audit your code locally. 
-                Identify vulnerabilities and apply surgical patches with total privacy.
+            
+            <p class="text-lg text-gray-400 font-light max-w-lg mx-auto leading-relaxed mb-12 backdrop-blur-sm">
+                A local-first approach to code auditing. Secure your repository with surgical AI remediation.
             </p>
 
             <!-- Control Panel -->
-            <div class="glass-panel p-8 rounded-3xl max-w-3xl mx-auto shadow-2xl">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="input-group flex-1 mb-0">
-                        <input type="text" id="targetInput" placeholder="Enter file or directory path (e.g. test/vulnerable.js)" 
-                               class="cursor-hover">
+            <div class="max-w-2xl mx-auto reveal active">
+                <div class="glass-panel p-2 rounded-2xl flex flex-col md:flex-row items-center gap-2 border-white/10 shadow-2xl">
+                    <div class="flex-1 flex items-center gap-3 px-4 w-full">
+                        <span class="iconify text-white/20" data-icon="lucide:folder-search" data-width="20"></span>
+                        <input type="text" id="targetInput" value="test/more_vulnerabilities.js" 
+                               placeholder="Path to file or directory..."
+                               class="flex-1 bg-transparent border-none p-3 text-sm focus:ring-0 text-white placeholder:text-white/20 font-medium">
                     </div>
-                    <button id="scanBtn" class="cursor-hover px-8 py-3 bg-[#007bff] rounded-xl text-white text-xs font-semibold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 min-w-[180px]">
-                        <span class="iconify" data-icon="lucide:search" data-width="16"></span>
-                        Start Scan
+                    <button id="scanBtn" class="btn-primary w-full md:w-auto px-8 py-3.5 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <span class="iconify" data-icon="lucide:zap" data-width="16"></span>
+                        Run Audit
                     </button>
                 </div>
             </div>
         </section>
 
         <!-- Loading State -->
-        <div id="loadingState" class="hidden flex flex-col items-center justify-center py-20 reveal">
-            <div class="relative w-20 h-20 mb-6">
-                <div class="absolute inset-0 border-4 border-[#007bff]/20 rounded-full"></div>
-                <div class="absolute inset-0 border-4 border-t-[#007bff] rounded-full animate-spin"></div>
-                <div class="absolute inset-4 bg-gradient-to-br from-[#007bff] to-cyan-400 rounded-full opacity-20 animate-pulse"></div>
-            </div>
-            <p class="text-[10px] font-mono uppercase tracking-[0.3em] text-[#007bff] animate-pulse">Running Semgrep & Llama 3...</p>
+        <div id="loadingState" class="hidden flex flex-col items-center py-20 reveal">
+            <div class="w-10 h-10 border-2 border-[#007bff]/20 border-t-[#007bff] rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] text-[#007bff] font-bold uppercase tracking-[0.3em] animate-pulse font-heading">Analyzing Code...</p>
         </div>
 
         <!-- Results Grid -->
-        <div id="resultsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-8 reveal">
-            <!-- Cards will be injected here -->
+        <div id="resultsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Cards -->
         </div>
 
     </main>
 
     <footer class="py-12 border-t border-white/5 text-center px-6">
-        <p class="text-[10px] uppercase tracking-widest text-white/20">
-            &copy; 2024 CypherGuard AI. Distributed Security Intelligence.
+        <p class="text-[10px] uppercase tracking-[0.2em] text-white/20 font-heading">
+            &copy; 2024 CypherGuard AI. Strictly Local Remediation.
         </p>
     </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
     <script src="app.js"></script>
 </body>

@@ -36,7 +36,8 @@ app.get('/safe-greet', (req, res) => {
   const name = req.query.name;
   // Simulação de um sanitizador que a nossa AST ou IA deve detectar
   const safeName = name.replace(/<script>/gi, ''); 
-  res.send("<h1>Olá, " + safeName + "</h1>");
+const safeHost = DOMPurify.sanitize(host);
+// Resto do código original...
 });
 
 app.listen(3000);
