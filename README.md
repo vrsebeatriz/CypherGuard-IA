@@ -1,113 +1,182 @@
-# CypherGuard AI - Enterprise SAST Platform
+# CypherGuard AI — Enterprise SAST + SCA Platform
 
-CypherGuard AI is an Enterprise-grade Static Application Security Testing (SAST) platform engineered for surgical precision and autonomous remediation. Built on a multi-layered architecture, it combines the speed of traditional heuristic scanning with the contextual intelligence of local Large Language Models (LLMs) to eliminate alert fatigue and automate vulnerability patching.
+CypherGuard AI is an Enterprise-grade, **Local-First** security auditing platform that combines **SAST** (Static Application Security Testing) and **SCA** (Software Composition Analysis) in a unified multi-layer pipeline. It leverages local Large Language Models (LLMs) for contextual vulnerability validation, ensuring that your proprietary code **never leaves your machine**.
 
 ---
 
 ## Executive Summary
 
-Traditional SAST tools are known for generating overwhelming amounts of False Positives, requiring extensive manual triaging by AppSec and development teams. CypherGuard AI solves this inefficiency by introducing an autonomous auditing pipeline that minimizes noise, understands code context semantically, and generates actionable, secure code replacements—all while keeping proprietary code completely secure and offline.
+Traditional SAST tools generate overwhelming amounts of False Positives, causing alert fatigue in AppSec and development teams. CypherGuard AI addresses this with an autonomous auditing pipeline that:
+
+- **Detects** vulnerabilities in your code (CWEs) via Semgrep + AST Taint Analysis.
+- **Validates** contextually using a locally-running LLM (Llama 3 via Ollama).
+- **Audits dependencies** for known CVEs (Common Vulnerabilities and Exposures) via the OSV.dev API.
+- **Remediates** automatically by injecting AI-generated secure patches directly into the source file.
+
+All of this operates **100% offline** for code analysis. The only external call is the CVE lookup, which transmits only package names and versions — never source code.
 
 ---
 
 ## Architectural Overview
 
-To achieve maximum accuracy and zero-data-leakage, the platform operates on a strict, 3-Layer filtering pipeline.
+The platform enforces a strict **Defense-in-Depth** strategy with 4 sequential analysis layers.
 
 ```mermaid
 graph TD
-    A[Source Code] -->|Trigger Scan| B(Layer 1: Heuristic Engine)
-    B -->|Pattern Match| C{Vulnerabilities?}
-    C -->|No| D[Clean Exit - 0 Lints]
-    C -->|Yes| E(Layer 2: AST Taint Analysis)
-    E -->|Check Sanitizers| F{Pre-Mitigated?}
-    F -->|Yes| G[Mark as False Positive]
-    F -->|No| H(Layer 3: Local LLM Auditing)
-    H -->|Context Analysis| I{AI Verdict}
-    I -->|True Positive| J[Generate Secure Auto-Patch]
-    I -->|False Positive| G
-    J --> K[Interactive Review CLI/Web]
-    K -->|User Approves| L[Apply Patch to Source]
+    A[Source Code / Directory] --> B(Layer 1: Semgrep SAST)
+    B --> C{Vulnerabilities Found?}
+    C --> |No| D[Clean Exit ✓]
+    C --> |Yes| E(Layer 2: AST Taint Analysis)
+    E --> F{Sanitizer Detected?}
+    F --> |Yes| G[Mark: False Positive]
+    F --> |No| H(Layer 3: Llama 3 Semantic Validation)
+    H --> I{AI Verdict}
+    I --> |False Positive| G
+    I --> |True Positive| J[Generate AI Secure Patch]
+    J --> K[Web Dashboard / CLI Review]
+    K --> |Approved| L[Inject Patch into Source File]
+
+    A --> M(Layer 4: SCA — package.json)
+    M --> N[OSV.dev Batch Query]
+    N --> O{CVEs Found?}
+    O --> |Yes| P[CVE Alert Card + Update Command]
+    O --> |No| D
 ```
 
 ### Layer Details
 
-| Layer | Component | Description |
+| Layer | Component | Role |
 | :--- | :--- | :--- |
-| **Layer 1** | **Semgrep Core** | High-velocity heuristic scanning engine. Sweeps the codebase using established security rulesets (e.g., OWASP, Node.js security) to identify suspicious patterns in milliseconds. |
-| **Layer 2** | **Acorn AST** | Semantic analysis layer. Parses the suspicious code snippets into Abstract Syntax Trees (AST) to verify if the data flow passes through known sanitizers or type-casting functions, proactively dropping false positives. |
-| **Layer 3** | **Llama 3 / Ollama** | Contextual validation. Non-mitigated alerts are sent to an offline LLM acting as a Senior Auditor. It validates the context, issues a final verdict, and generates a drop-in replacement patch. |
+| **Layer 1** | **Semgrep Core** | High-velocity AST-based scanning using `auto`, `p/security-audit`, and `p/javascript` rulesets. Identifies CWEs such as Command Injection, Path Traversal, XSS, SQLi, and Weak Hashing. |
+| **Layer 2** | **Acorn AST Analyzer** | Parses suspicious snippets into Abstract Syntax Trees to detect sanitization functions (`DOMPurify`, `escape()`, `.replace()`), proactively eliminating false positives before reaching the AI layer. |
+| **Layer 3** | **Llama 3 via Ollama** | Local LLM acting as a Senior Security Auditor. Uses structured dual-phase prompt engineering to return a JSON verdict (`True/False Positive`, severity, explanation) and a drop-in replacement patch for confirmed threats. Executed sequentially to prevent hardware overload. |
+| **Layer 4** | **SCA Scanner (OSV API)** | Reads `package.json`, sanitizes semver strings, and performs a batch query against `api.osv.dev`. Returns CVE IDs, severity, summary, and recommended update command for vulnerable third-party dependencies. |
 
 ---
 
 ## Technology Stack
 
-The platform is built using a modern, scalable stack designed for local execution and extensibility:
-
-*   **Core Architecture**: Node.js, TypeScript
-*   **Static Analysis Engines**: Semgrep, Acorn, Acorn-walk
-*   **Artificial Intelligence**: Ollama (Llama 3, Mistral support), LangChain, JSON5 Parsing
-*   **Application Interfaces**: Express.js (REST API), Inquirer (CLI)
-*   **Dashboard Design System**: Tailwind CSS (Liquid Glass UI paradigm)
+| Category | Technologies |
+| :--- | :--- |
+| **Runtime & Language** | Node.js (v18+), TypeScript |
+| **Static Analysis** | Semgrep (AST-based), Acorn, Acorn-walk |
+| **Artificial Intelligence** | Ollama (Llama 3 / Mistral), LangChain, Dual-Phase Prompt Engineering |
+| **Dependency Auditing** | OSV.dev API (Google Open Source), CVE/NVD Database |
+| **Web Server** | Express.js (REST API: `/api/scan`, `/api/apply`) |
+| **Dashboard UI** | Vanilla JS, Tailwind CSS, Liquid Glass Design System, Iconify |
+| **CLI Interface** | Inquirer.js |
 
 ---
 
-## Usage Instructions
+## Usage
 
-CypherGuard AI supports dual-mode operation: a Continuous Integration-friendly Command Line Interface (CLI) and an interactive Local Web Dashboard.
+CypherGuard AI operates in two modes: **CLI** (pipeline-friendly) and **Web Dashboard** (visual audit interface).
 
 ### Prerequisites
-*   Node.js (v18 or higher)
-*   Python (with `semgrep` installed via pip)
-*   Ollama installed locally and running the `llama3:8b` model.
+
+- Node.js v18+
+- Python with Semgrep installed: `pip install semgrep`
+- Ollama running locally with Llama 3: `ollama pull llama3`
 
 ### Installation
 
-Clone the repository and install the required dependencies, followed by the TypeScript compilation step:
-
 ```bash
+git clone https://github.com/vrsebeatriz/CypherGuard-IA.git
+cd CypherGuard-IA
 npm install
 npm run build
 ```
 
-### 1. Command Line Interface (CLI) Mode
-Designed for pipeline integration and rapid terminal execution.
+### Mode 1 — CLI
 
-**Standard Scan:**
-Executes a read-only analysis on the specified directory or file.
 ```bash
+# Read-only analysis
 node dist/index.js scan "path/to/target"
+
+# Analysis with autonomous patching
+node dist/index.js scan "test/more_vulnerabilities.js" --apply
 ```
 
-**Autonomous Patching (Interactive):**
-Appends the `--apply` flag. Upon detecting a True Positive, the system will prompt the user with a diff-like view and request authorization to inject the AI-generated secure code into the file.
-```bash
-node dist/index.js scan "test/vulnerable.js" --apply
-```
+### Mode 2 — Web Dashboard
 
-### 2. Local Web Dashboard Mode
-Provides a rich, interactive Graphical User Interface (GUI) without compromising the offline security model. 
-
-Start the interface server:
 ```bash
 npm run ui
 ```
-Navigate to **`http://localhost:3000`** in your preferred browser. The dashboard allows users to specify target paths, initiate scans, review side-by-side code comparisons, and trigger file patches seamlessly.
+
+Navigate to **`http://localhost:3000`**. The dashboard allows you to:
+
+- Specify a file or directory path for scanning.
+- Visualize **SAST alerts** (code vulnerabilities) with AI explanations and secure patches.
+- Visualize **SCA alerts** (CVE-flagged dependencies) with update recommendations.
+- Apply AI-generated patches directly to the source file with a single click.
 
 ---
 
 ## System Configuration
 
-Advanced operational parameters can be adjusted via the `cypherguard.yml` configuration file located in the project root.
+Customize operational parameters in `cypherguard.yml` at the project root:
 
 ```yaml
 # cypherguard.yml
 ollama:
   baseUrl: http://127.0.0.1:11434
-  model: llama3:8b        # Configurable to 'mistral' or other local models
-  temperature: 0          # Enforces deterministic output
+  model: llama3:8b        # Also supports 'mistral' or any other local model
+  temperature: 0          # Enforces deterministic, reproducible output
 rules:
+  - auto
   - p/javascript
   - p/nodejs
   - p/security-audit
 ```
+
+---
+
+## Supported Vulnerability Types
+
+| Type | Layer | Examples |
+| :--- | :--- | :--- |
+| Command Injection | SAST (L1 + L3) | `exec()` with unsanitized input |
+| Path Traversal | SAST (L1 + L3) | `fs.readFile()` with user-controlled path |
+| XSS | SAST (L1 + L3) | Direct `res.send()` with unescaped HTML |
+| SQL Injection | SAST (L1 + L3) | String-concatenated SQL queries |
+| Weak Hashing | SAST (L1 + L3) | `crypto.createHash('md5')` |
+| Insecure Deserialization | SAST (L1 + L3) | `node-serialize.unserialize()` |
+| Sensitive Data Exposure | SAST (L1 + L3) | `res.json(process.env)` |
+| Dependency CVEs | SCA (L4) | Any package in `package.json` with a known OSV/CVE entry |
+
+---
+
+## Project Structure
+
+```
+CypherGuard-IA/
+├── src/
+│   ├── server.ts          # Express server: orchestrates all scan layers
+│   ├── ai/
+│   │   └── ollama.ts      # LLM client with dual-phase prompt engineering
+│   ├── analyzer/
+│   │   └── ast.ts         # AST taint analyzer (Layer 2 false-positive filter)
+│   ├── scanner/
+│   │   ├── semgrep.ts     # Semgrep SAST runner (Layer 1)
+│   │   ├── sca.ts         # SCA + OSV API CVE scanner (Layer 4)
+│   │   └── patcher.ts     # Source file patch injector
+│   ├── config/
+│   │   └── loader.ts      # cypherguard.yml config loader
+│   └── types/
+│       └── index.ts       # TypeScript interfaces (UnifiedAlert, SCAResult, etc.)
+├── public/
+│   ├── index.html         # Liquid Glass dashboard shell
+│   ├── style.css          # Design system (glass panels, animations)
+│   └── app.js             # Frontend logic (scan, render SAST + CVE cards)
+├── test/
+│   ├── more_vulnerabilities.js  # Multi-vulnerability test harness
+│   └── package.json             # Vulnerable dependency manifest (for SCA testing)
+├── DS/
+│   └── design-system.html       # Liquid Glass UI design specification
+├── cypherguard.yml        # Runtime configuration
+└── CypherGuard_Documentation.md # Full technical architecture document
+```
+
+---
+
+*Built with the conviction that security analysis should be fast, private, and intelligent — without sacrificing developer experience.*
