@@ -1,0 +1,9 @@
+{
+  "name": "test-vulnerabilities",
+  "version": "1.0.0",
+  "description": "Test environment for CypherGuard IA",
+  "dependencies": {
+    "node-serialize": "0.0.4",
+    "express": "4.16.0"
+  }
+}

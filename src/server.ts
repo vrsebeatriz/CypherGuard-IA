@@ -6,6 +6,8 @@ import { SemgrepScanner } from './scanner/semgrep';
 import { ASTAnalyzer } from './analyzer/ast';
 import { OllamaValidator } from './ai/ollama';
 import { Patcher } from './scanner/patcher';
+import { SCAScanner } from './scanner/sca';
+import { UnifiedAlert } from './types';
 
 const app = express();
 const port = 3000;
@@ -19,6 +21,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 const semgrep = new SemgrepScanner();
 const astAnalyzer = new ASTAnalyzer();
 const aiValidator = new OllamaValidator();
+const scaScanner = new SCAScanner();
 
 // Rota para iniciar um scan
 app.post('/api/scan', async (req, res) => {
@@ -40,9 +43,9 @@ app.post('/api/scan', async (req, res) => {
     console.log(`[Server] Executando Semgrep (Camada 1)...`);
     const semgrepResults = await semgrep.scan(fullPath);
     
-    console.log(`[Server] Semgrep finalizado. Iniciando validação paralela de ${semgrepResults.results.length} alertas...`);
+    console.log(`[Server] Semgrep finalizado. Iniciando validação sequencial de ${semgrepResults.results.length} alertas...`);
     
-    const processedAlerts = [];
+    const processedAlerts: UnifiedAlert[] = [];
     
     for (let i = 0; i < semgrepResults.results.length; i++) {
       const finding = semgrepResults.results[i];
@@ -54,6 +57,7 @@ app.post('/api/scan', async (req, res) => {
       if (!suspiciousFlow) {
         console.log(`[Server] Alerta ${i + 1} mitigado via AST.`);
         processedAlerts.push({
+          type: 'SAST',
           finding,
           aiValidation: { status: 'False Positive', gravidade: 'Nenhuma', explicacao: 'Mitigado via AST (Sanitizador detectado).' }
         });
@@ -68,10 +72,20 @@ app.post('/api/scan', async (req, res) => {
       );
 
       processedAlerts.push({
+        type: 'SAST',
         finding,
         aiValidation: aiResult
       });
     }
+
+    console.log(`[Server] Executando SCA nas dependências...`);
+    const scaResults = await scaScanner.scan(fullPath);
+    scaResults.forEach(scaDetails => {
+      processedAlerts.push({
+        type: 'SCA',
+        scaDetails
+      });
+    });
 
     console.log(`[Server] Varredura completa enviada para o frontend.`);
     res.json({ results: processedAlerts });

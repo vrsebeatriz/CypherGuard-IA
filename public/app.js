@@ -90,57 +90,97 @@ function renderResults(alerts, targetPath) {
     }
 
     alerts.forEach((alert, index) => {
-        const isTruePositive = alert.aiValidation.status === 'True Positive';
-        const severityColor = isTruePositive ? 'text-red-400' : 'text-emerald-400';
-        
         const card = document.createElement('div');
         card.className = `glass-panel p-8 rounded-3xl reveal`;
         setTimeout(() => card.classList.add('active'), index * 100);
 
-        let html = `
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full ${isTruePositive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></span>
-                    <span class="text-[9px] font-mono text-white/40 uppercase tracking-widest">
-                        ${alert.finding.path.split('/').pop()} : ${alert.finding.start.line}
+        if (!alert.type || alert.type === 'SAST') {
+            const isTruePositive = alert.aiValidation.status === 'True Positive';
+            const severityColor = isTruePositive ? 'text-red-400' : 'text-emerald-400';
+            
+            let html = `
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full ${isTruePositive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></span>
+                        <span class="text-[9px] font-mono text-white/40 uppercase tracking-widest">
+                            ${alert.finding.path.split('/').pop()} : ${alert.finding.start.line}
+                        </span>
+                    </div>
+                    <span class="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-white/5 border border-white/5 ${severityColor}">
+                        ${alert.aiValidation.status}
                     </span>
                 </div>
-                <span class="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-white/5 border border-white/5 ${severityColor}">
-                    ${alert.aiValidation.status}
-                </span>
-            </div>
-            
-            <h3 class="font-heading text-lg font-semibold text-white mb-3 tracking-tight">
-                ${alert.finding.check_id.split('.').pop().replace(/-/g, ' ')}
-            </h3>
-            
-            <p class="text-xs text-white/50 mb-6 leading-relaxed font-light">
-                ${alert.aiValidation.explicacao}
-            </p>
+                
+                <h3 class="font-heading text-lg font-semibold text-white mb-3 tracking-tight">
+                    ${alert.finding.check_id.split('.').pop().replace(/-/g, ' ')}
+                </h3>
+                
+                <p class="text-xs text-white/50 mb-6 leading-relaxed font-light">
+                    ${alert.aiValidation.explicacao}
+                </p>
 
-            <div class="space-y-6">
-                <div>
-                    <span class="text-[9px] uppercase tracking-[0.2em] text-white/20 mb-2 block font-bold">Vulnerable Snippet</span>
-                    <pre><code>${escapeHtml(alert.finding.extra.lines)}</code></pre>
-                </div>
-        `;
+                <div class="space-y-6">
+                    <div>
+                        <span class="text-[9px] uppercase tracking-[0.2em] text-white/20 mb-2 block font-bold">Vulnerable Snippet</span>
+                        <pre><code>${escapeHtml(alert.finding.extra.lines)}</code></pre>
+                    </div>
+            `;
 
-        if (isTruePositive && alert.aiValidation.correcao) {
-            html += `
-                <div class="pt-4 border-t border-white/5">
-                    <span class="text-[9px] uppercase tracking-[0.2em] text-[#007bff] mb-2 block font-bold">AI Suggested Patch</span>
-                    <pre><code class="text-blue-100/80">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
+            if (isTruePositive && alert.aiValidation.correcao) {
+                html += `
+                    <div class="pt-4 border-t border-white/5">
+                        <span class="text-[9px] uppercase tracking-[0.2em] text-[#007bff] mb-2 block font-bold">AI Suggested Patch</span>
+                        <pre><code class="text-blue-100/80">${escapeHtml(alert.aiValidation.correcao)}</code></pre>
+                    </div>
+                    
+                    <button onclick="applyFix(${index})" 
+                            class="w-full mt-6 py-3 px-4 bg-[#007bff] rounded-xl text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/20">
+                        Apply Security Patch
+                    </button>
+                `;
+            }
+
+            html += `</div>`;
+            card.innerHTML = html;
+        } else if (alert.type === 'SCA') {
+            let html = `
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="iconify text-orange-500" data-icon="lucide:package-open" data-width="14"></span>
+                        <span class="text-[9px] font-mono text-white/40 uppercase tracking-widest">
+                            ${alert.scaDetails.package} v${alert.scaDetails.version}
+                        </span>
+                    </div>
+                    <span class="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                        CVE DETECTED
+                    </span>
                 </div>
                 
-                <button onclick="applyFix(${index})" 
-                        class="w-full mt-6 py-3 px-4 bg-[#007bff] rounded-xl text-white text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-[#007bff] transition-all duration-300 shadow-lg shadow-blue-900/20">
-                    Apply Security Patch
-                </button>
+                <h3 class="font-heading text-lg font-semibold text-white mb-3 tracking-tight">
+                    ${alert.scaDetails.vulnerabilityId}
+                </h3>
+                
+                <p class="text-xs text-white/50 mb-6 leading-relaxed font-light">
+                    ${alert.scaDetails.summary}
+                </p>
+
+                <div class="space-y-6">
+                    <div>
+                        <span class="text-[9px] uppercase tracking-[0.2em] text-white/20 mb-2 block font-bold">Details</span>
+                        <p class="text-[10px] text-white/40 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
+                            ${escapeHtml(alert.scaDetails.details)}
+                        </p>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-white/5">
+                        <span class="text-[9px] uppercase tracking-[0.2em] text-orange-400 mb-2 block font-bold">Recommended Action</span>
+                        <pre><code class="text-orange-100/80">npm update ${alert.scaDetails.package}</code></pre>
+                    </div>
+                </div>
             `;
+            card.innerHTML = html;
         }
 
-        html += `</div>`;
-        card.innerHTML = html;
         resultsGrid.appendChild(card);
     });
 }

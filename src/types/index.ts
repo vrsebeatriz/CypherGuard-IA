@@ -47,3 +47,21 @@ export interface CypherConfig {
     customPrompts?: Record<string, string>;
   };
 }
+
+export interface SCAResult {
+  package: string;
+  version: string;
+  vulnerabilityId: string;
+  severity: string;
+  summary: string;
+  details: string;
+  references: string[];
+}
+
+export interface UnifiedAlert {
+  type: 'SAST' | 'SCA';
+  finding?: SemgrepMatch;
+  aiValidation?: AIValidationResult;
+  scaDetails?: SCAResult;
+}
+

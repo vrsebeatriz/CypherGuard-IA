@@ -14,16 +14,14 @@ export class SemgrepScanner {
   public async scan(targetPath: string): Promise<SemgrepResult> {
     const config = ConfigLoader.loadConfig();
     
-    // Regras padrão mais abrangentes
-    let rules = ['p/javascript', 'p/typescript', 'p/nodejs', 'p/security-audit', 'p/sql-injection'];
+    // Regras padrão mais abrangentes + auto para pegar tudo que o semgrep sugerir
+    let rules = ['auto', 'p/javascript', 'p/typescript', 'p/nodejs', 'p/security-audit'];
     
-    // Se houver regras customizadas no YAML (opcionalmente poderíamos adicionar suporte a isso)
-    // Por enquanto, vamos apenas garantir que o comando seja robusto.
-
     const configArgs = rules.map(r => `--config=${r}`).join(' ');
     
     try {
-      const command = `semgrep scan ${configArgs} --json "${targetPath}"`;
+      // Adicionando --quiet para focar apenas no JSON e --metrics=off para velocidade
+      const command = `semgrep scan ${configArgs} --json --quiet --metrics=off "${targetPath}"`;
       
       const { stdout, stderr } = await execAsync(command);
       
