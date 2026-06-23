@@ -1,5 +1,9 @@
 # CypherGuard AI — Enterprise SAST + SCA Platform
 
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)
+
 CypherGuard AI is an Enterprise-grade, **Local-First** security auditing platform that combines **SAST** (Static Application Security Testing) and **SCA** (Software Composition Analysis) in a unified multi-layer pipeline. It leverages local Large Language Models (LLMs) for contextual vulnerability validation, ensuring that your proprietary code **never leaves your machine**.
 
 ---
@@ -176,6 +180,16 @@ CypherGuard-IA/
 ├── cypherguard.yml        # Runtime configuration
 └── CypherGuard_Documentation.md # Full technical architecture document
 ```
+
+## Contributing
+
+Contributions are always welcome! Please feel free to open an issue or submit a Pull Request.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 

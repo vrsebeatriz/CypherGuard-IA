@@ -18,7 +18,7 @@
     "semgrep"
   ],
   "author": "Beatriz",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@langchain/core": "^0.3.11",
     "@langchain/ollama": "^0.1.6",
