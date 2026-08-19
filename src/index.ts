@@ -39,7 +39,7 @@ program
   .description('Executa a varredura SAST em um diretório ou arquivo.')
   .argument('<path>', 'Caminho para o diretório ou arquivo a ser analisado')
   .option('--sarif', 'Gera um relatório na raiz do diretório no formato cypherguard-report.sarif')
-  .option('--apply', 'Aplica automaticamente as correções sugeridas pela IA (Uso cauteloso)')
+  .option('--apply', 'Aplica automaticamente as correções sugeridas pela IA após revisão de diff (requer git limpo; gera backup .bak)')
   .action(async (targetPath: string, options: any) => {
     const fullPath = path.resolve(targetPath);
     
@@ -117,6 +117,15 @@ program
             if (aiResult.correcao) console.log(chalk.green(`  Correção Sugerida:  ${aiResult.correcao}`));
 
             if (options.apply && aiResult.correcao) {
+              const preview = Patcher.preview(finding.path, finding.start.line, finding.end.line, aiResult.correcao);
+              if (preview) {
+                console.log(chalk.gray(`\n  [PREVIEW] Diff em ${path.basename(finding.path)} (linha ${finding.start.line}):`));
+                const beforeLines = preview.before.split('\n').map((l) => `  - ${l}`).join('\n');
+                const afterLines = preview.after.split('\n').map((l) => `  + ${l}`).join('\n');
+                console.log(chalk.red(beforeLines));
+                console.log(chalk.green(afterLines));
+              }
+
               const { confirm } = await inquirer.prompt([
                 {
                   type: 'confirm',
