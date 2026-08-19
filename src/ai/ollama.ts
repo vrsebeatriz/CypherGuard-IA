@@ -6,6 +6,7 @@ import { ConfigLoader } from '../config/loader';
 import { KnowledgeBase } from './knowledge';
 import chalk from 'chalk';
 import { ParserUtils } from '../utils/parser';
+import { getCustomFocus } from './customFocus';
 
 export class OllamaValidator {
   private llm: ChatOllama;
@@ -75,9 +76,7 @@ exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
     try {
       const resultString = await chain.invoke({
         guidelines: KnowledgeBase.getSecurityGuidelines(),
-        customPrompt: this.config.rules?.customPrompts?.[vulnerability]
-          ? `DIRETRIZES CUSTOMIZADAS DA EQUIPE:\n${this.config.rules.customPrompts[vulnerability]}\n`
-          : '',
+        customPrompt: getCustomFocus(this.config.rules?.customPrompts, vulnerability),
         vulnerability,
         context,
         codeSnippet,
