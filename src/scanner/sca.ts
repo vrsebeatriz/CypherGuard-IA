@@ -1,84 +1,91 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { SCAResult } from '../types';
 
 export class SCAScanner {
   /**
-   * Procura o package.json e consulta a API da OSV (Open Source Vulnerabilities).
+   * Procura o package.json e package-lock.json e executa npm audit.
    */
   public async scan(targetPath: string): Promise<SCAResult[]> {
-    let packageJsonPath = targetPath;
+    let targetDir = targetPath;
     
-    if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isDirectory()) {
-      packageJsonPath = path.join(targetPath, 'package.json');
-    } else if (fs.existsSync(targetPath)) {
-      packageJsonPath = path.join(path.dirname(targetPath), 'package.json');
+    if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isFile()) {
+      targetDir = path.dirname(targetPath);
     }
 
-    if (!fs.existsSync(packageJsonPath)) {
-      console.log(`[SCA] Nenhuma dependência encontrada em ${packageJsonPath}`);
+    const packageJsonPath = path.join(targetDir, 'package.json');
+    const packageLockPath = path.join(targetDir, 'package-lock.json');
+
+    if (!fs.existsSync(packageJsonPath) || !fs.existsSync(packageLockPath)) {
+      console.log(`[SCA] package.json ou package-lock.json não encontrados em ${targetDir}. Pulando análise SCA.`);
       return [];
     }
 
     try {
-      const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      const deps = { ...packageData.dependencies, ...packageData.devDependencies };
-      
-      const queries = Object.entries(deps).map(([name, version]) => {
-        // Remover prefixos semver como ^, ~, >= para a consulta
-        const cleanVersion = (version as string).replace(/[\^~>=<]/g, '').trim();
-        return {
-          package: { name, ecosystem: 'npm' },
-          version: cleanVersion
-        };
-      });
-
-      if (queries.length === 0) return [];
-
-      console.log(`[SCA] Verificando ${queries.length} dependências no OSV...`);
-      
-      const response = await fetch('https://api.osv.dev/v1/querybatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queries })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OSV API Error: ${response.statusText}`);
+      console.log(`[SCA] Executando npm audit em ${targetDir}...`);
+      let auditOutput = '';
+      try {
+        auditOutput = execSync('npm audit --json', { 
+          cwd: targetDir, 
+          encoding: 'utf8', 
+          stdio: ['ignore', 'pipe', 'ignore'] 
+        });
+      } catch (err: any) {
+        // npm audit exits with non-zero code if vulnerabilities are found
+        auditOutput = err.stdout || '';
       }
 
-      const responseData = await response.json();
+      if (!auditOutput) return [];
+
+      const auditData = JSON.parse(auditOutput);
       const results: SCAResult[] = [];
 
-      responseData.results.forEach((res: any, index: number) => {
-        if (res.vulns && res.vulns.length > 0) {
-          const pkg = queries[index];
+      if (auditData.vulnerabilities) {
+        for (const [pkgName, vulnDetails] of Object.entries<any>(auditData.vulnerabilities)) {
+          if (Array.isArray(vulnDetails.via)) {
+             for (const via of vulnDetails.via) {
+               if (typeof via === 'object' && via.title) {
+                 // Try to get a CVE ID or a meaningful ID
+                 const idMatch = via.title.match(/CVE-\d+-\d+/i);
+                 const cveId = idMatch ? idMatch[0] : (via.source || via.url || via.title);
+                 
+                 // Evitar duplicados
+                 if (!results.find(r => r.vulnerabilityId === cveId)) {
+                   results.push({
+                     package: pkgName,
+                     version: vulnDetails.range || 'unknown',
+                     vulnerabilityId: cveId,
+                     severity: (via.severity || vulnDetails.severity || 'HIGH').toUpperCase(),
+                     summary: via.title,
+                     details: `Nó vulnerável: ${pkgName}. Efeitos: ${(vulnDetails.effects || []).join(', ')}. Fix disponível: ${vulnDetails.fixAvailable ? 'Sim' : 'Não'}`,
+                     references: via.url ? [via.url] : []
+                   });
+                 }
+               }
+             }
+          }
           
-          res.vulns.forEach((vuln: any) => {
-            // Filtrar apenas vulnerabilidades relevantes que tenham ID
-            const cveId = vuln.aliases?.find((a: string) => a.startsWith('CVE-')) || vuln.id;
-            
-            // Checar para não duplicar exatamente a mesma CVE
-            if (!results.find(r => r.vulnerabilityId === cveId)) {
-              results.push({
-                package: pkg.package.name,
-                version: pkg.version,
-                vulnerabilityId: cveId,
-                severity: vuln.database_specific?.severity || 'HIGH',
-                summary: vuln.summary || 'Vulnerabilidade de Dependência Conhecida',
-                details: vuln.details || 'Sem descrição adicional detalhada.',
-                references: vuln.references?.map((r: any) => r.url) || []
-              });
-            }
-          });
+          // Se não extraímos nada do 'via' mas a vuln existe
+          if (results.filter(r => r.package === pkgName).length === 0 && vulnDetails.severity) {
+             results.push({
+                package: pkgName,
+                version: vulnDetails.range || 'unknown',
+                vulnerabilityId: `NPM-AUDIT-${pkgName}`,
+                severity: vulnDetails.severity.toUpperCase(),
+                summary: `Vulnerabilidade em ${pkgName}`,
+                details: `Efeitos: ${(vulnDetails.effects || []).join(', ')}. Fix disponível: ${vulnDetails.fixAvailable ? 'Sim' : 'Não'}`,
+                references: []
+             });
+          }
         }
-      });
+      }
 
-      console.log(`[SCA] ${results.length} vulnerabilidades encontradas nas dependências.`);
+      console.log(`[SCA] ${results.length} vulnerabilidades encontradas via npm audit.`);
       return results;
 
-    } catch (error) {
-      console.error(`[SCA] Falha na análise de dependências:`, error);
+    } catch (error: any) {
+      console.error(`[SCA] Falha na análise de dependências:`, error.message);
       return [];
     }
   }
