@@ -9,6 +9,7 @@ import { SarifGenerator } from './scanner/sarif';
 import { Patcher } from './scanner/patcher';
 import { GitHelper } from './scanner/git';
 import { SCAScanner } from './scanner/sca';
+import { ConfigLoader } from './config/loader';
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
@@ -66,7 +67,14 @@ program
 
     try {
       const scanner = new SemgrepScanner();
+      const config = ConfigLoader.loadConfig();
       const results = await scanner.scan(fullPath);
+
+      if (scanner.hasScanErrors(results)) {
+        console.log(
+          chalk.yellow(`[Semgrep] ⚠️  ${results.errors.length} erro(s) durante a varredura (regras/parse). Resultado pode estar incompleto.`)
+        );
+      }
 
       const findingsCount = results.results.length;
       const sarifGen = new SarifGenerator();
@@ -88,14 +96,16 @@ program
           console.log(chalk.gray(`Regra:   `) + chalk.magenta(finding.check_id));
 
           const snippet = getFileSnippet(finding.path, finding.start.line, finding.end.line);
+          const entropyThreshold = config.entropy.threshold;
 
           // Fase 2: Taint Analysis e Entropia
+          let suspiciousLiterals: string[] = [];
           if (finding.check_id.toLowerCase().includes('hardcoded') || finding.check_id.toLowerCase().includes('secret')) {
-            const isHighEntropy = EntropyAnalyzer.isSuspiciouslyHigh(snippet);
-            if (isHighEntropy) {
-              console.log(chalk.yellow(`[AST/Entropia] Alta entropia detectada. Risco elevado.`));
+            suspiciousLiterals = EntropyAnalyzer.findSuspiciousStrings(snippet, entropyThreshold);
+            if (suspiciousLiterals.length > 0) {
+              console.log(chalk.yellow(`[AST/Entropia] Alta entropia detectada (threshold ${entropyThreshold}): ${suspiciousLiterals.join(', ')}`));
             } else {
-              console.log(chalk.green(`[AST/Entropia] Entropia baixa. Provável mock.`));
+              console.log(chalk.green(`[AST/Entropia] Nenhum literal com entropia alta. Provável mock.`));
             }
           } else {
             // AST Verification
@@ -107,7 +117,10 @@ program
 
           // Fase 3: Validação LLM
           const aiSpinner = ora('Solicitando auditoria ao Llama 3 local...').start();
-          const aiResult = await ollama.validateAlert(snippet, finding.check_id, finding.extra.message);
+          const enrichedContext = suspiciousLiterals.length > 0
+            ? `${finding.extra.message}\n[Entropia] Strings de alta entropia no trecho: ${suspiciousLiterals.join(', ')}`
+            : finding.extra.message;
+          const aiResult = await ollama.validateAlert(snippet, finding.check_id, enrichedContext);
           aiSpinner.stop();
 
           if (aiResult.status === 'True Positive') {

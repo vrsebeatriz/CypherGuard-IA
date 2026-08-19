@@ -105,6 +105,12 @@ export function createApp(options: CreateAppOptions = {}) {
       console.log(`[Server] Executando Semgrep (Camada 1)...`);
       const semgrepResults = await semgrep.scan(fullPath);
 
+      if (semgrep.hasScanErrors(semgrepResults)) {
+        console.warn(
+          `[Server] Semgrep reportou ${semgrepResults.errors.length} erro(s) — o resultado pode estar incompleto.`
+        );
+      }
+
       console.log(
         `[Server] Semgrep finalizado. Iniciando validação sequencial de ${semgrepResults.results.length} alertas...`
       );

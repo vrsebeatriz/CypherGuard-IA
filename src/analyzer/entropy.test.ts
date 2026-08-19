@@ -28,3 +28,32 @@ describe('EntropyAnalyzer.isSuspiciouslyHigh', () => {
     expect(EntropyAnalyzer.isSuspiciouslyHigh('ab', 0)).toBe(true);
   });
 });
+
+describe('EntropyAnalyzer.findSuspiciousStrings', () => {
+  it('detecta um segredo de alta entropia entre literais do código', () => {
+    const code = `const key = "aB3$eF7!hK9@nQ2#tW5&yZ8*"; const label = "user";`;
+    const found = EntropyAnalyzer.findSuspiciousStrings(code);
+    expect(found).toContain('aB3$eF7!hK9@nQ2#tW5&yZ8*');
+    expect(found).not.toContain('user');
+  });
+
+  it('ignora valores mock de baixa entropia', () => {
+    const code = `const apiKey = "test-key-123"; const host = "localhost";`;
+    expect(EntropyAnalyzer.findSuspiciousStrings(code)).toEqual([]);
+  });
+
+  it('respeita o limiar configurado', () => {
+    const code = `const secret = "abc123XYZ";`;
+    expect(EntropyAnalyzer.findSuspiciousStrings(code, 4.5)).toEqual([]);
+    expect(EntropyAnalyzer.findSuspiciousStrings(code, 0)).toContain('abc123XYZ');
+  });
+
+  it('analisa literais individualmente, não o snippet inteiro', () => {
+    const code = `const a = "aaaaaaaa"; const b = "bbbbbbbb"; const secret = "aB3$eF7!hK9@nQ2#tW5&yZ8*";`;
+    const found = EntropyAnalyzer.findSuspiciousStrings(code);
+    // Apenas o literal de alta entropia é sinalizado; os de baixa entropia nunca.
+    expect(found).toEqual(['aB3$eF7!hK9@nQ2#tW5&yZ8*']);
+    expect(found).not.toContain('aaaaaaaa');
+    expect(found).not.toContain('bbbbbbbb');
+  });
+});
