@@ -8,7 +8,8 @@
     "dev": "ts-node src/index.ts",
     "ui": "ts-node src/server.ts",
     "build": "tsc",
-    "test": "jest"
+    "test": "jest",
+    "bench": "ts-node src/bench/run.ts"
   },
   "keywords": [
     "sast",
@@ -26,22 +27,23 @@
     "acorn-walk": "^8.3.5",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
-    "cors": "^2.8.6",
     "express": "^5.2.1",
     "inquirer": "^8.2.7",
     "js-yaml": "^4.1.1",
     "json5": "^2.2.3",
     "langchain": "^0.3.2",
-    "ora": "^5.4.1"
+    "ora": "^5.4.1",
+    "semver": "^7.8.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/acorn": "^4.0.6",
-    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/inquirer": "^8.2.12",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.7.5",
+    "@types/semver": "^7.8.0",
     "@types/supertest": "^6.0.3",
     "jest": "^29.7.0",
     "supertest": "^7.2.2",
