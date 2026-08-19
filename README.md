@@ -19,6 +19,15 @@ Traditional SAST tools generate overwhelming amounts of False Positives, causing
 
 All of this operates **100% offline** for code analysis. The only external call is the CVE lookup, which transmits only package names and versions — never source code.
 
+## Recent Security & Architectural Improvements
+
+- **AST Taint Tracking**: Layer 2 now features a robust taint tracking system by identifier using Acorn, significantly reducing false negatives by tracing variable sanitization paths through the syntax tree.
+- **Path Traversal Guards**: The REST API endpoints are fortified with path boundary constraints (`assertWithinRoot`) preventing directory traversal attacks.
+- **Session Authentication**: The Web Dashboard and API endpoints are now protected by dynamic session tokens (`X-CypherGuard-Token`) blocking unauthorized usage.
+- **LLM Prompt Customization**: Added the ability to inject custom, vulnerability-specific guidelines into the Llama 3 prompt via `cypherguard.yml` rules.
+- **Automated Testing & CI**: Comprehensive unit testing with Jest enforcing functional correctness, coupled with a GitHub Actions CI pipeline.
+- **npm Audit Integration**: Layer 4 SCA now uses `npm audit` directly, ensuring accurate transitive dependency analysis.
+
 ---
 
 ## Architectural Overview
