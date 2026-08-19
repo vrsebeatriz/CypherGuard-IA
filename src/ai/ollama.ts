@@ -36,6 +36,8 @@ Você é um auditor de segurança sênior. Sua tarefa é validar se um alerta de
 DIRETRIZES DE SEGURANÇA:
 {guidelines}
 
+{customPrompt}
+
 ALERTA:
 - Vulnerabilidade: {vulnerability}
 - Contexto: {context}
@@ -73,6 +75,9 @@ exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
     try {
       const resultString = await chain.invoke({
         guidelines: KnowledgeBase.getSecurityGuidelines(),
+        customPrompt: this.config.rules?.customPrompts?.[vulnerability]
+          ? `DIRETRIZES CUSTOMIZADAS DA EQUIPE:\n${this.config.rules.customPrompts[vulnerability]}\n`
+          : '',
         vulnerability,
         context,
         codeSnippet,
