@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 export class GitHelper {
   /**
@@ -6,7 +6,7 @@ export class GitHelper {
    */
   public static isGitRepo(): boolean {
     try {
-      execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
+      execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'ignore' });
       return true;
     } catch (e) {
       return false;
@@ -18,7 +18,7 @@ export class GitHelper {
    */
   public static isDirty(): boolean {
     try {
-      const status = execSync('git status --porcelain', { encoding: 'utf8' });
+      const status = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
       return status.trim().length > 0;
     } catch (e) {
       return false;
@@ -30,7 +30,7 @@ export class GitHelper {
    */
   public static getCurrentBranch(): string {
     try {
-      return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+      return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim();
     } catch (e) {
       return 'unknown';
     }

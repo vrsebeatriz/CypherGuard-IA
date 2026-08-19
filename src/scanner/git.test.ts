@@ -1,8 +1,8 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { GitHelper } from './git';
 
 jest.mock('child_process');
-const mockedExecSync = execSync as jest.MockedFunction<typeof execSync>;
+const mockedExecFileSync = execFileSync as jest.MockedFunction<typeof execFileSync>;
 
 describe('GitHelper', () => {
   afterEach(() => {
@@ -10,34 +10,34 @@ describe('GitHelper', () => {
   });
 
   it('isGitRepo retorna true quando o comando git sucede', () => {
-    mockedExecSync.mockReturnValue(Buffer.from('true'));
+    mockedExecFileSync.mockReturnValue(Buffer.from('true'));
     expect(GitHelper.isGitRepo()).toBe(true);
   });
 
   it('isGitRepo retorna false quando o comando git falha', () => {
-    mockedExecSync.mockImplementation(() => {
+    mockedExecFileSync.mockImplementation(() => {
       throw new Error('not a git repo');
     });
     expect(GitHelper.isGitRepo()).toBe(false);
   });
 
   it('isDirty retorna true quando git status --porcelain tem saída', () => {
-    mockedExecSync.mockReturnValue(' M src/server.ts\n' as any);
+    mockedExecFileSync.mockReturnValue(' M src/server.ts\n' as any);
     expect(GitHelper.isDirty()).toBe(true);
   });
 
   it('isDirty retorna false quando a árvore está limpa', () => {
-    mockedExecSync.mockReturnValue('' as any);
+    mockedExecFileSync.mockReturnValue('' as any);
     expect(GitHelper.isDirty()).toBe(false);
   });
 
   it('getCurrentBranch retorna o nome da branch sem espaços extras', () => {
-    mockedExecSync.mockReturnValue('main\n' as any);
+    mockedExecFileSync.mockReturnValue('main\n' as any);
     expect(GitHelper.getCurrentBranch()).toBe('main');
   });
 
   it('getCurrentBranch retorna "unknown" se o comando falhar', () => {
-    mockedExecSync.mockImplementation(() => {
+    mockedExecFileSync.mockImplementation(() => {
       throw new Error('fail');
     });
     expect(GitHelper.getCurrentBranch()).toBe('unknown');
