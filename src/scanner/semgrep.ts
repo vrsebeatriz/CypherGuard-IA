@@ -23,8 +23,8 @@ export class SemgrepScanner {
   public async scan(targetPath: string): Promise<SemgrepResult> {
     const config = ConfigLoader.loadConfig();
     
-    // Regras padrão mais abrangentes + auto para pegar tudo que o semgrep sugerir
-    const rules = ['auto', 'p/javascript', 'p/typescript', 'p/nodejs', 'p/security-audit'];
+    // Regras padrão mais abrangentes. 'auto' exige telemetria (conflita com --metrics=off).
+    const rules = ['p/javascript', 'p/typescript', 'p/nodejs', 'p/security-audit'];
     
     const args = [
       'scan',
