@@ -110,13 +110,17 @@ export function createApp(options: CreateAppOptions = {}) {
       }
 
       console.log(`[Server] Executando SCA nas dependências...`);
-      const scaResults = await scaScanner.scan(fullPath);
-      scaResults.forEach((scaDetails) => {
+      const scaOutcome = await scaScanner.scan(fullPath);
+      scaOutcome.results.forEach((scaDetails) => {
         processedAlerts.push({ type: 'SCA', scaDetails });
       });
 
+      if (scaOutcome.status === 'error') {
+        console.warn('[Server] A análise de dependências (SCA) falhou — resultado pode estar incompleto.');
+      }
+
       console.log(`[Server] Varredura completa enviada para o frontend.`);
-      res.json({ results: processedAlerts });
+      res.json({ results: processedAlerts, scaStatus: scaOutcome.status });
     } catch (error: any) {
       console.error('Erro durante o scan:', error);
       res.status(500).json({ error: error.message });

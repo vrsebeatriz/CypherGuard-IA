@@ -58,6 +58,13 @@ export interface SCAResult {
   references: string[];
 }
 
+export type SCAScanStatus = 'ok' | 'error';
+
+export interface SCAScanOutcome {
+  status: SCAScanStatus;
+  results: SCAResult[];
+}
+
 export interface UnifiedAlert {
   type: 'SAST' | 'SCA';
   finding?: SemgrepMatch;
