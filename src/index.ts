@@ -8,6 +8,7 @@ import { EntropyAnalyzer } from './analyzer/entropy';
 import { SarifGenerator } from './scanner/sarif';
 import { Patcher } from './scanner/patcher';
 import { GitHelper } from './scanner/git';
+import { SCAScanner } from './scanner/sca';
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
@@ -147,6 +148,24 @@ program
           console.log(chalk.yellow.bold(`[IA] 🟡 Desconhecido`));
           console.log(chalk.gray(`  Detalhe:   ${aiResult.explicacao}`));
         }
+      }
+
+      // SCA
+      console.log(chalk.cyan(`\nIniciando Camada 4 (SCA) para dependências...`));
+      const scaSpinner = ora('Verificando dependências transitivas (SCA)...').start();
+      const scaScanner = new SCAScanner();
+      const scaResults = await scaScanner.scan(fullPath);
+      scaSpinner.stop();
+
+      if (scaResults.length > 0) {
+        console.log(chalk.red.bold(`\n--- 📦 Análise de Dependências (SCA) ---`));
+        scaResults.forEach((sca, index) => {
+          console.log(chalk.redBright(`[${index + 1}] Pacote: ${sca.package} v${sca.version}`));
+          console.log(chalk.white(`  Vulnerabilidade: ${sca.vulnerabilityId} (${sca.severity})`));
+          console.log(chalk.gray(`  Resumo:          ${sca.summary}`));
+        });
+      } else {
+        console.log(chalk.green(`\n[SCA] Nenhuma vulnerabilidade de dependência identificada.`));
       }
 
       if (options.sarif) {
