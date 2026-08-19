@@ -31,27 +31,82 @@ export class ASTAnalyzer {
     const ast = this.parse(codeSnippet);
     if (!ast) return true; // Se não conseguir fazer parse, considera suspeito por segurança
 
-    let hasSanitizer = false;
+    const sanitizedVars = new Set<string>();
+    let hasSuspiciousSink = false;
+    let isMitigated = false;
 
+    // Pass 1: identificar variáveis que receberam valor sanitizado
     walk.simple(ast, {
-      CallExpression(node: any) {
-        if (node.callee && node.callee.type === 'Identifier') {
-          const name = node.callee.name.toLowerCase();
-          if (name.includes('sanitize') || name.includes('escape') || name === 'number') {
-            hasSanitizer = true;
+      VariableDeclarator(node: any) {
+        if (node.init && node.init.type === 'CallExpression') {
+          const calleeName = node.init.callee.name?.toLowerCase() || node.init.callee.property?.name?.toLowerCase() || '';
+          if (calleeName.includes('sanitize') || calleeName.includes('escape') || calleeName === 'number') {
+            if (node.id && node.id.type === 'Identifier') {
+              sanitizedVars.add(node.id.name);
+            }
           }
-        } else if (node.callee && node.callee.type === 'MemberExpression') {
-          if (node.callee.property && node.callee.property.type === 'Identifier') {
-            const propName = node.callee.property.name.toLowerCase();
-            if (propName.includes('sanitize') || propName.includes('escape')) {
-              hasSanitizer = true;
+        }
+      },
+      AssignmentExpression(node: any) {
+        if (node.right.type === 'CallExpression') {
+          const calleeName = node.right.callee.name?.toLowerCase() || node.right.callee.property?.name?.toLowerCase() || '';
+          if (calleeName.includes('sanitize') || calleeName.includes('escape') || calleeName === 'number') {
+            if (node.left.type === 'Identifier') {
+              sanitizedVars.add(node.left.name);
             }
           }
         }
       }
     });
 
-    return !hasSanitizer; // É suspeito se NÃO tiver sanitizador
+    // Pass 2: procurar chamadas perigosas e validar os argumentos
+    walk.simple(ast, {
+      CallExpression(node: any) {
+        const calleeName = node.callee.name?.toLowerCase() || node.callee.property?.name?.toLowerCase() || '';
+        const isSink = ['exec', 'eval', 'query', 'run'].includes(calleeName);
+        
+        if (isSink) {
+          hasSuspiciousSink = true;
+          let allArgsSafe = true;
+
+          if (node.arguments && node.arguments.length > 0) {
+            for (const arg of node.arguments) {
+              if (arg.type === 'Identifier') {
+                if (!sanitizedVars.has(arg.name)) allArgsSafe = false;
+              } else if (arg.type === 'BinaryExpression') {
+                walk.simple(arg, {
+                  Identifier(innerNode: any) {
+                    if (!sanitizedVars.has(innerNode.name)) allArgsSafe = false;
+                  }
+                });
+              } else if (arg.type === 'TemplateLiteral') {
+                for (const exp of arg.expressions) {
+                  walk.simple(exp, {
+                    Identifier(innerNode: any) {
+                      if (!sanitizedVars.has(innerNode.name)) allArgsSafe = false;
+                    }
+                  });
+                }
+              } else if (arg.type !== 'Literal') {
+                allArgsSafe = false;
+              }
+            }
+          } else {
+            allArgsSafe = false;
+          }
+
+          if (allArgsSafe) {
+            isMitigated = true;
+          }
+        }
+      }
+    });
+
+    if (!hasSuspiciousSink) {
+      return sanitizedVars.size === 0;
+    }
+
+    return !isMitigated;
   }
 }
 
