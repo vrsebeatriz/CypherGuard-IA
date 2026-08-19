@@ -16,7 +16,7 @@ export class OllamaValidator {
     this.llm = new ChatOllama({
       baseUrl: this.config.ollama.baseUrl,
       model: this.config.ollama.model,
-      temperature: 0,
+      temperature: this.config.ollama.temperature ?? 0,
     });
   }
 
