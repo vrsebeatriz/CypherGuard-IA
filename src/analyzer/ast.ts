@@ -6,7 +6,10 @@
 import * as acorn from 'acorn';
 import * as walk from 'acorn-walk';
 
-const SANITIZER_PATTERN = /sanitize|escape/i;
+// Ancorado no início do identificador: casa "sanitize"/"sanitizeInput"/"escapeHtml",
+// mas não "unescape" ou "descape" — que são o oposto de um sanitizador e, com uma
+// checagem por substring livre, eram incorretamente aceitos como proteção válida.
+const SANITIZER_PATTERN = /^(sanitize|escape)/i;
 
 function calleeName(node: any): string | null {
   if (!node.callee) return null;

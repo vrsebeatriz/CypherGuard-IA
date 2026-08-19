@@ -97,4 +97,12 @@ describe('ASTAnalyzer.isFlowSuspicious', () => {
     const snippet = `console.log(algumaVariavelSemOrigemConhecida);`;
     expect(analyzer.isFlowSuspicious(snippet)).toBe(true);
   });
+
+  it('REGRESSÃO: não trata unescape() como sanitizador (é o oposto — decodifica, não protege)', () => {
+    const snippet = `
+      const raw = req.query.x;
+      db.query("SELECT * WHERE id=" + unescape(raw));
+    `;
+    expect(analyzer.isFlowSuspicious(snippet)).toBe(true);
+  });
 });
