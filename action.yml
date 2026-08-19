@@ -22,7 +22,7 @@ runs:
       with:
         node-version: '20'
     - name: Install Dependencies
-      run: npm install
+      run: npm ci
       shell: bash
     - name: Build
       run: npm run build

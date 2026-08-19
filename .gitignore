@@ -3,3 +3,9 @@ dist/
 .env
 .DS_Store
 DS/
+
+# Artefatos de execução e cache
+temp_out.json
+cypherguard-report.sarif
+*.bak
+.cache/

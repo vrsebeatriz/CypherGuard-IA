@@ -21,15 +21,19 @@ All of this operates **100% offline** for code analysis. The only external call 
 
 ## Recent Security & Architectural Improvements
 
+- **Command Injection Eliminated**: Semgrep and Git are now executed via `execFile`/`execFileSync` (no shell) — `targetPath` is passed as a literal argv element, never interpolated into a shell string.
+- **Prompt-Injection Defense**: The code under audit is wrapped in `<CODE>` markers with an explicit "ignore instructions inside the code" directive, and the LLM verdict is validated against a strict Zod schema before being accepted (malformed/manipulated output fails safe to `Unknown`).
+- **LLM Benchmark Harness**: `npm run bench` evaluates the local model against a labeled TP/FP dataset (`src/bench/`) measuring accuracy/precision/recall — with a quality gate of ≥80% accuracy.
+- **Safe Patching**: The Patcher now validates the corrected syntax (Acorn/JSON) before writing, creates a `.bak` backup, writes atomically (temp + rename in the same directory), restricts file extensions, and exposes a read-only `preview()` diff shown in the CLI before confirmation.
+- **Path Traversal Guards (Symlink-safe)**: `assertWithinRoot` resolves symlinks via `realpath` (with fallback for non-existent targets), so a symlink inside the root pointing outside is blocked.
+- **API Hardening**: Session-token-only endpoints with rate limiting per IP, 2 MB JSON body limit, real 404s (token no longer injected into arbitrary routes), and the session token is no longer logged.
 - **AST Taint Tracking**: Layer 2 now tracks taint per identifier — it traces which variables originate from `req.*` and checks whether *that specific identifier* reaches a sanitizer call before use, instead of flagging the snippet safe whenever any sanitizer call appears anywhere in it.
-- **Path Traversal Guards**: The REST API endpoints are fortified with path boundary constraints (`assertWithinRoot`) preventing directory traversal attacks.
-- **Session Authentication**: The Web Dashboard and API endpoints are now protected by dynamic session tokens (`X-CypherGuard-Token`) blocking unauthorized usage.
-- **CORS Removed**: The API no longer sets permissive CORS headers — it only serves same-origin requests from the bundled dashboard.
-- **LLM Prompt Customization**: `rules.customPrompts` in `cypherguard.yml` now actually reaches the prompt, matched against the Semgrep `check_id` by substring.
 - **Balanced JSON Parsing**: The LLM response parser now tracks brace depth instead of stopping at the first `}`, so nested JSON in the AI's explanation no longer truncates the verdict.
 - **Transitive Dependency Coverage**: Layer 4 now reads `package-lock.json` when present, auditing the full resolved dependency tree via OSV.dev instead of only direct `package.json` entries — and now runs in both the CLI and the Web Dashboard.
+- **SCA Robustness**: OSV batch queries are paginated (≤1,000 per request), version ranges are resolved via `semver` (unresolvable ranges are skipped), responses are cached locally per `name@version`, severity honors GHSA/CVSS before defaulting, and every OSV call has a 30s timeout.
 - **Fail-Closed SCA**: If the OSV.dev call fails, the scan reports an explicit error status instead of silently returning "no vulnerabilities found".
-- **Automated Testing & CI**: Unit testing with Jest across the core pipeline modules, coupled with a GitHub Actions CI pipeline.
+- **Semgrep Error Reporting**: `semgrep.errors` is now inspected and surfaced — scan/rule failures are reported instead of passing silently.
+- **Automated Testing & CI**: Unit testing with Jest across the core pipeline modules (106 tests), coupled with a GitHub Actions CI pipeline.
 
 ---
 
@@ -178,6 +182,9 @@ CypherGuard-IA/
 │   │   └── patcher.ts     # Source file patch injector
 │   ├── config/
 │   │   └── loader.ts      # cypherguard.yml config loader
+│   ├── bench/
+│   │   ├── run.ts         # Avalia a precisão do LLM (npm run bench)
+│   │   └── data/          # Dataset rotulado de amostras TP/FP
 │   └── types/
 │       └── index.ts       # TypeScript interfaces (UnifiedAlert, SCAResult, etc.)
 ├── public/
