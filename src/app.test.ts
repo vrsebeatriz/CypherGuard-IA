@@ -13,4 +13,28 @@ describe('createApp — smoke test', () => {
     const response = await request(app).post('/api/apply').send({ filePath: 'x.js' });
     expect(response.status).toBe(400);
   });
+
+  it('bloqueia path traversal em /api/scan com 403', async () => {
+    const app = createApp();
+    const response = await request(app).post('/api/scan').send({ targetPath: '../../etc' });
+    expect(response.status).toBe(403);
+  });
+
+  it('bloqueia path traversal em /api/apply com 403', async () => {
+    const app = createApp();
+    const response = await request(app)
+      .post('/api/apply')
+      .send({ filePath: '../../etc/passwd', startLine: 1, endLine: 1, correction: 'x' });
+    expect(response.status).toBe(403);
+  });
+
+  it('não expõe mais cabeçalho de CORS irrestrito', async () => {
+    const app = createApp();
+    const response = await request(app)
+      .post('/api/scan')
+      .set('Origin', 'https://site-malicioso.example')
+      .send({});
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
 });
+

@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import { assertWithinRoot, PathTraversalError } from './security/pathGuard';
 import path from 'path';
 import fs from 'fs';
 import { SemgrepScanner } from './scanner/semgrep';
@@ -16,7 +16,6 @@ export interface CreateAppOptions {
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
-  app.use(cors());
   app.use(express.json());
   app.use(express.static(path.join(__dirname, '../public')));
 
@@ -32,8 +31,16 @@ export function createApp(options: CreateAppOptions = {}) {
       return res.status(400).json({ error: 'targetPath is required' });
     }
 
-    console.log(`[Server] Recebida requisição de scan para: ${targetPath}`);
-    const fullPath = path.resolve(process.cwd(), targetPath);
+    let fullPath: string;
+    try {
+      fullPath = assertWithinRoot(process.cwd(), targetPath);
+    } catch (error) {
+      if (error instanceof PathTraversalError) {
+        console.error(`[Server] Tentativa de path traversal bloqueada: ${targetPath}`);
+        return res.status(403).json({ error: 'Caminho fora do diretório permitido.' });
+      }
+      throw error;
+    }
 
     if (!fs.existsSync(fullPath)) {
       console.error(`[Server] Caminho não encontrado: ${fullPath}`);
@@ -102,7 +109,16 @@ export function createApp(options: CreateAppOptions = {}) {
       return res.status(400).json({ error: 'Parâmetros incompletos.' });
     }
 
-    const fullPath = path.resolve(process.cwd(), filePath);
+    let fullPath: string;
+    try {
+      fullPath = assertWithinRoot(process.cwd(), filePath);
+    } catch (error) {
+      if (error instanceof PathTraversalError) {
+        console.error(`[Server] Tentativa de path traversal bloqueada: ${filePath}`);
+        return res.status(403).json({ error: 'Caminho fora do diretório permitido.' });
+      }
+      throw error;
+    }
     console.log(`[Server] Aplicando patch em: ${fullPath} (Linhas ${startLine}-${endLine})`);
 
     const success = Patcher.applyPatch(fullPath, startLine, endLine, correction);
