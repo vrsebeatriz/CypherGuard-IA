@@ -61,4 +61,37 @@ describe('ParserUtils.extractValidationResult', () => {
     const input = `Apenas texto, sem JSON.`;
     expect(() => ParserUtils.extractValidationResult(input)).toThrow('Não foi possível localizar as chaves do objeto JSON na resposta.');
   });
+
+  it('REGRESSÃO: não trunca em chaves aninhadas dentro da explicação', () => {
+    // Bug original: indexOf('{') até a PRIMEIRA '}' cortava o JSON aqui
+    // logo depois de "{a:1}", perdendo gravidade e explicacao completa.
+    const input = `{
+      "status": "True Positive",
+      "gravidade": "Alta",
+      "explicacao": "O objeto {a:1} é passado sem sanitização para o exec()"
+    }
+    \`\`\`javascript
+    const x = sanitize(y);
+    \`\`\`
+    `;
+    const result = ParserUtils.extractValidationResult(input);
+    expect(result.status).toBe('True Positive');
+    expect(result.gravidade).toBe('Alta');
+    expect(result.explicacao).toContain('O objeto');
+    expect(result.correcao).toBe('const x = sanitize(y);');
+  });
+
+  it('REGRESSÃO: lida com um objeto JSON realmente aninhado (metadata dentro do payload)', () => {
+    const input = `{"status": "True Positive", "gravidade": "Alta", "explicacao": "CWE-78", "metadata": {"cwe": "CWE-78", "extra": {"nested": true}}}`;
+    const result = ParserUtils.extractValidationResult(input);
+    expect(result.status).toBe('True Positive');
+    expect(result.gravidade).toBe('Alta');
+  });
+
+  it('ignora chaves dentro de strings ao contar profundidade de aninhamento', () => {
+    const input = `{"status": "False Positive", "explicacao": "o código tinha um { } vazio e mal formado"}`;
+    const result = ParserUtils.extractValidationResult(input);
+    expect(result.status).toBe('False Positive');
+    expect(result.explicacao).toContain('mal formado');
+  });
 });
