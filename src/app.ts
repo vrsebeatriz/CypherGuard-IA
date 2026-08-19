@@ -12,13 +12,16 @@ import { UnifiedAlert } from './types';
 
 export interface CreateAppOptions {
   sessionToken?: string;
+  rateLimit?: { windowMs: number; max: number };
 }
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
   const sessionToken = options.sessionToken ?? crypto.randomBytes(24).toString('hex');
-  console.log(`[Server] Token de sessão desta execução: ${sessionToken}`);
 
   function requireSessionToken(req: express.Request, res: express.Response, next: express.NextFunction) {
     const provided = req.header('X-CypherGuard-Token');
@@ -36,9 +39,39 @@ export function createApp(options: CreateAppOptions = {}) {
     res.type('html').send(html);
   }
 
-  app.use(express.json());
+  // Rate limiting simples por IP — local-first, limite generoso para scans legítimos.
+  const rateLimit = options.rateLimit ?? { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX };
+  const rateLimitState = new Map<string, { count: number; resetAt: number }>();
+
+  function rateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+
+    let entry = rateLimitState.get(ip);
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 0, resetAt: now + rateLimit.windowMs };
+      rateLimitState.set(ip, entry);
+    }
+
+    entry.count += 1;
+    if (entry.count > rateLimit.max) {
+      return res.status(429).json({ error: 'Limite de requisições excedido. Tente novamente mais tarde.' });
+    }
+
+    // Limpeza leve para evitar crescimento ilimitado do mapa.
+    if (rateLimitState.size > 1000) {
+      for (const [key, e] of rateLimitState) {
+        if (e.resetAt <= now) rateLimitState.delete(key);
+      }
+    }
+
+    next();
+  }
+
+  app.use(express.json({ limit: '2mb' }));
   app.get(['/', '/index.html'], serveIndexWithToken);
   app.use(express.static(path.join(__dirname, '../public')));
+  app.use('/api', rateLimiter);
 
   const semgrep = new SemgrepScanner();
   const astAnalyzer = new ASTAnalyzer();
@@ -156,7 +189,7 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.use((req, res) => {
-    serveIndexWithToken(req, res);
+    res.status(404).json({ error: 'Rota não encontrada.' });
   });
 
   return app;
