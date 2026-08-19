@@ -69,109 +69,111 @@ program
       const results = await scanner.scan(fullPath);
 
       const findingsCount = results.results.length;
-      if (findingsCount === 0) {
-        spinner.succeed(chalk.green('Nenhuma vulnerabilidade detectada pela heurística. Processo finalizado.'));
-        process.exit(0);
-      } else {
-        spinner.warn(chalk.yellow(`Varredura concluída. ${findingsCount} vulnerabilidades suspeitas encontradas.`));
-      }
-
-      console.log(chalk.cyan(`\nIniciando Camadas 2 (AST) e 3 (IA LLM) para ${findingsCount} alertas...`));
-      
-      const ollama = new OllamaValidator();
-      const ast = new ASTAnalyzer();
       const sarifGen = new SarifGenerator();
 
-      for (let i = 0; i < findingsCount; i++) {
-        const finding = results.results[i];
-        console.log(chalk.whiteBright.bold(`\n--- Alerta ${i + 1}/${findingsCount} ---`));
-        console.log(chalk.gray(`Arquivo: `) + finding.path + chalk.gray(` (Linha ${finding.start.line})`));
-        console.log(chalk.gray(`Regra:   `) + chalk.magenta(finding.check_id));
-        
-        const snippet = getFileSnippet(finding.path, finding.start.line, finding.end.line);
-        
-        // Fase 2: Taint Analysis e Entropia
-        if (finding.check_id.toLowerCase().includes('hardcoded') || finding.check_id.toLowerCase().includes('secret')) {
-          const isHighEntropy = EntropyAnalyzer.isSuspiciouslyHigh(snippet);
-          if (isHighEntropy) {
-            console.log(chalk.yellow(`[AST/Entropia] Alta entropia detectada. Risco elevado.`));
-          } else {
-            console.log(chalk.green(`[AST/Entropia] Entropia baixa. Provável mock.`));
-          }
-        } else {
-          // AST Verification
-          const suspiciousFlow = ast.isFlowSuspicious(snippet);
-          if (!suspiciousFlow) {
-            console.log(chalk.green(`[AST] Função de sanitização identificada! Risco mitigado.`));
-            // Pode ignorar e não mandar pra IA para economizar tempo, mas vamos mandar como contexto extra
-          }
-        }
-        
-        // Fase 3: Validação LLM
-        const aiSpinner = ora('Solicitando auditoria ao Llama 3 local...').start();
-        const aiResult = await ollama.validateAlert(snippet, finding.check_id, finding.extra.message);
-        aiSpinner.stop();
-        
-        if (aiResult.status === 'True Positive') {
-          console.log(chalk.red.bold(`[IA] 🔴 Verdadeiro Positivo`));
-          console.log(chalk.red(`  Gravidade: ${aiResult.gravidade}`));
-          console.log(chalk.white(`  Motivo:    ${aiResult.explicacao}`));
-          if (aiResult.correcao) console.log(chalk.green(`  Correção Sugerida:  ${aiResult.correcao}`));
-          
-          if (options.apply && aiResult.correcao) {
-            const { confirm } = await inquirer.prompt([
-              {
-                type: 'confirm',
-                name: 'confirm',
-                message: `Deseja aplicar a correção sugerida no arquivo ${path.basename(finding.path)} (linha ${finding.start.line})?`,
-                default: false
-              }
-            ]);
+      if (findingsCount === 0) {
+        spinner.succeed(chalk.green('Nenhuma vulnerabilidade detectada pela heurística (Camada 1).'));
+      } else {
+        spinner.warn(chalk.yellow(`Varredura concluída. ${findingsCount} vulnerabilidades suspeitas encontradas.`));
 
-            if (confirm) {
-              const success = Patcher.applyPatch(finding.path, finding.start.line, finding.end.line, aiResult.correcao);
-              if (success) {
-                console.log(chalk.green.bold(`  [AUTO-PATCH] ✅ Correção aplicada com sucesso.`));
-              }
+        console.log(chalk.cyan(`\nIniciando Camadas 2 (AST) e 3 (IA LLM) para ${findingsCount} alertas...`));
+
+        const ollama = new OllamaValidator();
+        const ast = new ASTAnalyzer();
+
+        for (let i = 0; i < findingsCount; i++) {
+          const finding = results.results[i];
+          console.log(chalk.whiteBright.bold(`\n--- Alerta ${i + 1}/${findingsCount} ---`));
+          console.log(chalk.gray(`Arquivo: `) + finding.path + chalk.gray(` (Linha ${finding.start.line})`));
+          console.log(chalk.gray(`Regra:   `) + chalk.magenta(finding.check_id));
+
+          const snippet = getFileSnippet(finding.path, finding.start.line, finding.end.line);
+
+          // Fase 2: Taint Analysis e Entropia
+          if (finding.check_id.toLowerCase().includes('hardcoded') || finding.check_id.toLowerCase().includes('secret')) {
+            const isHighEntropy = EntropyAnalyzer.isSuspiciouslyHigh(snippet);
+            if (isHighEntropy) {
+              console.log(chalk.yellow(`[AST/Entropia] Alta entropia detectada. Risco elevado.`));
             } else {
-              console.log(chalk.gray(`  [AUTO-PATCH] ⏭️  Correção ignorada pelo usuário.`));
+              console.log(chalk.green(`[AST/Entropia] Entropia baixa. Provável mock.`));
+            }
+          } else {
+            // AST Verification
+            const suspiciousFlow = ast.isFlowSuspicious(snippet);
+            if (!suspiciousFlow) {
+              console.log(chalk.green(`[AST] Fluxo de dado sanitizado identificado! Risco mitigado.`));
             }
           }
 
-          if (options.sarif) {
-            sarifGen.addResult(finding, aiResult);
+          // Fase 3: Validação LLM
+          const aiSpinner = ora('Solicitando auditoria ao Llama 3 local...').start();
+          const aiResult = await ollama.validateAlert(snippet, finding.check_id, finding.extra.message);
+          aiSpinner.stop();
+
+          if (aiResult.status === 'True Positive') {
+            console.log(chalk.red.bold(`[IA] 🔴 Verdadeiro Positivo`));
+            console.log(chalk.red(`  Gravidade: ${aiResult.gravidade}`));
+            console.log(chalk.white(`  Motivo:    ${aiResult.explicacao}`));
+            if (aiResult.correcao) console.log(chalk.green(`  Correção Sugerida:  ${aiResult.correcao}`));
+
+            if (options.apply && aiResult.correcao) {
+              const { confirm } = await inquirer.prompt([
+                {
+                  type: 'confirm',
+                  name: 'confirm',
+                  message: `Deseja aplicar a correção sugerida no arquivo ${path.basename(finding.path)} (linha ${finding.start.line})?`,
+                  default: false
+                }
+              ]);
+
+              if (confirm) {
+                const success = Patcher.applyPatch(finding.path, finding.start.line, finding.end.line, aiResult.correcao);
+                if (success) {
+                  console.log(chalk.green.bold(`  [AUTO-PATCH] ✅ Correção aplicada com sucesso.`));
+                }
+              } else {
+                console.log(chalk.gray(`  [AUTO-PATCH] ⏭️  Correção ignorada pelo usuário.`));
+              }
+            }
+
+            if (options.sarif) {
+              sarifGen.addResult(finding, aiResult);
+            }
+          } else if (aiResult.status === 'False Positive') {
+            console.log(chalk.green.bold(`[IA] 🟢 Falso Positivo`));
+            console.log(chalk.gray(`  Motivo:    ${aiResult.explicacao}`));
+          } else {
+            console.log(chalk.yellow.bold(`[IA] 🟡 Desconhecido`));
+            console.log(chalk.gray(`  Detalhe:   ${aiResult.explicacao}`));
           }
-        } else if (aiResult.status === 'False Positive') {
-          console.log(chalk.green.bold(`[IA] 🟢 Falso Positivo`));
-          console.log(chalk.gray(`  Motivo:    ${aiResult.explicacao}`));
-        } else {
-          console.log(chalk.yellow.bold(`[IA] 🟡 Desconhecido`));
-          console.log(chalk.gray(`  Detalhe:   ${aiResult.explicacao}`));
+        }
+
+        if (options.sarif) {
+          const sarifPath = path.join(process.cwd(), 'cypherguard-report.sarif');
+          sarifGen.save(sarifPath);
+          console.log(chalk.blue(`\n[+] Relatório SARIF gerado em: ${sarifPath}`));
         }
       }
 
-      // SCA
-      console.log(chalk.cyan(`\nIniciando Camada 4 (SCA) para dependências...`));
-      const scaSpinner = ora('Verificando dependências transitivas (SCA)...').start();
+      // Camada 4 — SCA: roda sempre, inclusive quando não há achados SAST.
+      console.log(chalk.cyan(`\nExecutando Camada 4 (SCA) — auditoria de dependências...`));
       const scaScanner = new SCAScanner();
-      const scaResults = await scaScanner.scan(fullPath);
-      scaSpinner.stop();
+      const scaOutcome = await scaScanner.scan(fullPath);
 
-      if (scaResults.length > 0) {
-        console.log(chalk.red.bold(`\n--- 📦 Análise de Dependências (SCA) ---`));
-        scaResults.forEach((sca, index) => {
-          console.log(chalk.redBright(`[${index + 1}] Pacote: ${sca.package} v${sca.version}`));
-          console.log(chalk.white(`  Vulnerabilidade: ${sca.vulnerabilityId} (${sca.severity})`));
-          console.log(chalk.gray(`  Resumo:          ${sca.summary}`));
-        });
+      if (scaOutcome.status === 'error') {
+        console.log(
+          chalk.yellow(
+            `[SCA] ⚠️  Não foi possível concluir a auditoria de dependências (falha de rede ou API OSV). Resultado pode estar incompleto.`
+          )
+        );
+      } else if (scaOutcome.results.length === 0) {
+        console.log(chalk.green(`[SCA] ✅ Nenhuma dependência vulnerável encontrada.`));
       } else {
-        console.log(chalk.green(`\n[SCA] Nenhuma vulnerabilidade de dependência identificada.`));
-      }
-
-      if (options.sarif) {
-        const sarifPath = path.join(process.cwd(), 'cypherguard-report.sarif');
-        sarifGen.save(sarifPath);
-        console.log(chalk.blue(`\n[+] Relatório SARIF gerado em: ${sarifPath}`));
+        console.log(chalk.red.bold(`[SCA] 🔴 ${scaOutcome.results.length} vulnerabilidade(s) de dependência encontrada(s):`));
+        scaOutcome.results.forEach((vuln) => {
+          console.log(chalk.red(`  ${vuln.package}@${vuln.version} — ${vuln.vulnerabilityId} (${vuln.severity})`));
+          console.log(chalk.gray(`    ${vuln.summary}`));
+        });
       }
 
       console.log(chalk.green.bold(`\n✅ Auditoria concluída com sucesso.\n`));
