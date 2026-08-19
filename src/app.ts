@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { assertWithinRoot, PathTraversalError } from './security/pathGuard';
 import path from 'path';
 import fs from 'fs';
@@ -16,7 +17,27 @@ export interface CreateAppOptions {
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
 
+  const sessionToken = options.sessionToken ?? crypto.randomBytes(24).toString('hex');
+  console.log(`[Server] Token de sessão desta execução: ${sessionToken}`);
+
+  function requireSessionToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const provided = req.header('X-CypherGuard-Token');
+    if (provided !== sessionToken) {
+      return res.status(401).json({ error: 'Token de sessão inválido ou ausente.' });
+    }
+    next();
+  }
+
+  function serveIndexWithToken(req: express.Request, res: express.Response) {
+    const indexPath = path.join(__dirname, '../public/index.html');
+    const html = fs
+      .readFileSync(indexPath, 'utf-8')
+      .replace('</head>', `  <meta name="cg-token" content="${sessionToken}">\n</head>`);
+    res.type('html').send(html);
+  }
+
   app.use(express.json());
+  app.get(['/', '/index.html'], serveIndexWithToken);
   app.use(express.static(path.join(__dirname, '../public')));
 
   const semgrep = new SemgrepScanner();
@@ -24,7 +45,7 @@ export function createApp(options: CreateAppOptions = {}) {
   const aiValidator = new OllamaValidator();
   const scaScanner = new SCAScanner();
 
-  app.post('/api/scan', async (req, res) => {
+  app.post('/api/scan', requireSessionToken, async (req, res) => {
     const { targetPath } = req.body;
 
     if (!targetPath) {
@@ -102,7 +123,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.post('/api/apply', (req, res) => {
+  app.post('/api/apply', requireSessionToken, (req, res) => {
     const { filePath, startLine, endLine, correction } = req.body;
 
     if (!filePath || !startLine || !endLine || !correction) {
@@ -131,7 +152,7 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.use((req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    serveIndexWithToken(req, res);
   });
 
   return app;

@@ -1,4 +1,5 @@
 let currentAlerts = [];
+const CG_TOKEN = document.querySelector('meta[name="cg-token"]')?.content || '';
 
 // DOM Elements
 const cursor = document.getElementById('cursor');
@@ -50,7 +51,7 @@ scanBtn.addEventListener('click', async () => {
     try {
         const response = await fetch('/api/scan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CypherGuard-Token': CG_TOKEN },
             body: JSON.stringify({ targetPath })
         });
 
@@ -195,7 +196,7 @@ async function applyFix(index) {
     try {
         const response = await fetch('/api/apply', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CypherGuard-Token': CG_TOKEN },
             body: JSON.stringify({ filePath, startLine, endLine, correction })
         });
 
