@@ -35,4 +35,18 @@ export class GitHelper {
       return 'unknown';
     }
   }
+
+  /**
+   * Lança se houver um repositório Git com alterações não commitadas. Usado
+   * antes de --apply: a flag anuncia "requer git limpo", então precisa de
+   * fato bloquear, não apenas avisar. Sem repositório Git, não há árvore de
+   * trabalho para sujar — nada é bloqueado.
+   */
+  public static assertCleanForApply(): void {
+    if (this.isGitRepo() && this.isDirty()) {
+      throw new Error(
+        '--apply requer um repositório Git limpo (sem alterações não commitadas). Faça commit ou stash antes de aplicar patches automaticamente.'
+      );
+    }
+  }
 }

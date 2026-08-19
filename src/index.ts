@@ -62,7 +62,16 @@ program
     } else {
       console.log(chalk.gray(`[Git] Projeto não está sob controle de versão Git.\n`));
     }
-    
+
+    if (options.apply) {
+      try {
+        GitHelper.assertCleanForApply();
+      } catch (e: any) {
+        console.error(chalk.red(`Erro: ${e.message}`));
+        process.exit(1);
+      }
+    }
+
     const spinner = ora('Executando Semgrep (Camada 1 - Heurística)...').start();
 
     try {

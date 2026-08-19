@@ -42,4 +42,25 @@ describe('GitHelper', () => {
     });
     expect(GitHelper.getCurrentBranch()).toBe('unknown');
   });
+
+  it('assertCleanForApply lança quando o repositório Git está sujo', () => {
+    mockedExecFileSync
+      .mockReturnValueOnce(Buffer.from('true')) // isGitRepo
+      .mockReturnValueOnce(' M src/server.ts\n' as any); // isDirty
+    expect(() => GitHelper.assertCleanForApply()).toThrow(/requer um repositório Git limpo/);
+  });
+
+  it('assertCleanForApply não lança quando o repositório Git está limpo', () => {
+    mockedExecFileSync
+      .mockReturnValueOnce(Buffer.from('true')) // isGitRepo
+      .mockReturnValueOnce('' as any); // isDirty
+    expect(() => GitHelper.assertCleanForApply()).not.toThrow();
+  });
+
+  it('assertCleanForApply não lança fora de um repositório Git (nada para sujar)', () => {
+    mockedExecFileSync.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+    expect(() => GitHelper.assertCleanForApply()).not.toThrow();
+  });
 });
