@@ -21,12 +21,15 @@ All of this operates **100% offline** for code analysis. The only external call 
 
 ## Recent Security & Architectural Improvements
 
-- **AST Taint Tracking**: Layer 2 now features a robust taint tracking system by identifier using Acorn, significantly reducing false negatives by tracing variable sanitization paths through the syntax tree.
+- **AST Taint Tracking**: Layer 2 now tracks taint per identifier — it traces which variables originate from `req.*` and checks whether *that specific identifier* reaches a sanitizer call before use, instead of flagging the snippet safe whenever any sanitizer call appears anywhere in it.
 - **Path Traversal Guards**: The REST API endpoints are fortified with path boundary constraints (`assertWithinRoot`) preventing directory traversal attacks.
 - **Session Authentication**: The Web Dashboard and API endpoints are now protected by dynamic session tokens (`X-CypherGuard-Token`) blocking unauthorized usage.
-- **LLM Prompt Customization**: Added the ability to inject custom, vulnerability-specific guidelines into the Llama 3 prompt via `cypherguard.yml` rules.
-- **Automated Testing & CI**: Comprehensive unit testing with Jest enforcing functional correctness, coupled with a GitHub Actions CI pipeline.
-- **npm Audit Integration**: Layer 4 SCA now uses `npm audit` directly, ensuring accurate transitive dependency analysis.
+- **CORS Removed**: The API no longer sets permissive CORS headers — it only serves same-origin requests from the bundled dashboard.
+- **LLM Prompt Customization**: `rules.customPrompts` in `cypherguard.yml` now actually reaches the prompt, matched against the Semgrep `check_id` by substring.
+- **Balanced JSON Parsing**: The LLM response parser now tracks brace depth instead of stopping at the first `}`, so nested JSON in the AI's explanation no longer truncates the verdict.
+- **Transitive Dependency Coverage**: Layer 4 now reads `package-lock.json` when present, auditing the full resolved dependency tree via OSV.dev instead of only direct `package.json` entries — and now runs in both the CLI and the Web Dashboard.
+- **Fail-Closed SCA**: If the OSV.dev call fails, the scan reports an explicit error status instead of silently returning "no vulnerabilities found".
+- **Automated Testing & CI**: Unit testing with Jest across the core pipeline modules, coupled with a GitHub Actions CI pipeline.
 
 ---
 
@@ -61,9 +64,9 @@ graph TD
 | Layer | Component | Role |
 | :--- | :--- | :--- |
 | **Layer 1** | **Semgrep Core** | High-velocity AST-based scanning using `auto`, `p/security-audit`, and `p/javascript` rulesets. Identifies CWEs such as Command Injection, Path Traversal, XSS, SQLi, and Weak Hashing. |
-| **Layer 2** | **Acorn AST Analyzer** | Parses suspicious snippets into Abstract Syntax Trees to detect sanitization functions (`DOMPurify`, `escape()`, `.replace()`), proactively eliminating false positives before reaching the AI layer. |
+| **Layer 2** | **Acorn AST Analyzer** | Traces which identifiers originate from `req.*` (query/params/body) and checks whether each one is actually passed into a sanitizer/escape call before the flagged line — not just whether a sanitizer exists anywhere in the snippet. Falls back to "suspicious" when the data origin can't be determined. |
 | **Layer 3** | **Llama 3 via Ollama** | Local LLM acting as a Senior Security Auditor. Uses structured dual-phase prompt engineering to return a JSON verdict (`True/False Positive`, severity, explanation) and a drop-in replacement patch for confirmed threats. Executed sequentially to prevent hardware overload. |
-| **Layer 4** | **SCA Scanner (OSV API)** | Reads `package.json`, sanitizes semver strings, and performs a batch query against `api.osv.dev`. Returns CVE IDs, severity, summary, and recommended update command for vulnerable third-party dependencies. |
+| **Layer 4** | **SCA Scanner (OSV API)** | Reads `package-lock.json` when present (covering the full transitive dependency tree), falling back to direct `package.json` entries otherwise, and performs a batch query against `api.osv.dev`. Returns CVE IDs, severity, summary, and recommended update command. Runs in both the CLI and the Web Dashboard, and reports an explicit error status if the OSV call fails rather than silently reporting a clean result. |
 
 ---
 
