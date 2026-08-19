@@ -7,7 +7,7 @@ export class ConfigLoader {
   private static readonly DEFAULT_CONFIG: CypherConfig = {
     ollama: {
       model: 'llama3',
-      temperature: 0.1,
+      temperature: 0,
       baseUrl: 'http://localhost:11434',
     },
     entropy: {

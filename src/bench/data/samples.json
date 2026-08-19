@@ -1,0 +1,72 @@
+[
+  {
+    "id": "tp-command-injection",
+    "check_id": "javascript.lang.security.audit.command-injection",
+    "message": "Entrada do usuário chega ao exec() sem sanitização.",
+    "code": "const host = req.query.host;\nexec(\"ping -c 1 \" + host, (err, stdout) => { res.send(stdout); });",
+    "expected": "True Positive"
+  },
+  {
+    "id": "tp-sql-injection",
+    "check_id": "javascript.lang.security.audit.sqli",
+    "message": "Query SQL montada por concatenação com entrada do usuário.",
+    "code": "const id = req.query.id;\ndb.query(\"SELECT * FROM users WHERE id = \" + id, cb);",
+    "expected": "True Positive"
+  },
+  {
+    "id": "tp-path-traversal",
+    "check_id": "javascript.lang.security.audit.path-traversal",
+    "message": "Caminho de arquivo controlado pelo usuário.",
+    "code": "const file = req.query.file;\nfs.readFile('/var/www/' + file, (err, data) => { res.send(data); });",
+    "expected": "True Positive"
+  },
+  {
+    "id": "tp-xss",
+    "check_id": "javascript.lang.security.audit.dom-xss-sink",
+    "message": "Conteúdo refletido sem escaping.",
+    "code": "const name = req.query.name;\nres.send(\"<h1>Hello \" + name + \"</h1>\");",
+    "expected": "True Positive"
+  },
+  {
+    "id": "tp-weak-hash",
+    "check_id": "javascript.lang.security.audit.crypto-md5",
+    "message": "Hash criptográfico fraco.",
+    "code": "const hash = crypto.createHash('md5').update(data).digest('hex');",
+    "expected": "True Positive"
+  },
+  {
+    "id": "fp-command-injection-sanitized",
+    "check_id": "javascript.lang.security.audit.command-injection",
+    "message": "Possível command injection.",
+    "code": "const host = req.query.host;\nconst safeHost = sanitize(host);\nexec(\"ping -c 1 \" + safeHost, (err, stdout) => { res.send(stdout); });",
+    "expected": "False Positive"
+  },
+  {
+    "id": "fp-sql-parametrized",
+    "check_id": "javascript.lang.security.audit.sqli",
+    "message": "Possível SQL injection.",
+    "code": "const id = req.query.id;\ndb.query('SELECT * FROM users WHERE id = ?', [id], cb);",
+    "expected": "False Positive"
+  },
+  {
+    "id": "fp-path-traversal-basename",
+    "check_id": "javascript.lang.security.audit.path-traversal",
+    "message": "Possível path traversal.",
+    "code": "const file = path.basename(req.query.file);\nfs.readFile('/var/www/' + file, (err, data) => { res.send(data); });",
+    "expected": "False Positive"
+  },
+  {
+    "id": "fp-xss-escaped",
+    "check_id": "javascript.lang.security.audit.dom-xss-sink",
+    "message": "Possível XSS refletido.",
+    "code": "const name = req.query.name;\nres.send(\"<h1>Hello \" + escapeHtml(name) + \"</h1>\");",
+    "expected": "False Positive"
+  },
+  {
+    "id": "fp-hardcoded-mock",
+    "check_id": "javascript.lang.security.audit.hardcoded-secret",
+    "message": "Possível segredo hardcoded.",
+    "code": "const apiKey = \"test-key-123\";",
+    "expected": "False Positive"
+  }
+]

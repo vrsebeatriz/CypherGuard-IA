@@ -40,3 +40,21 @@ describe('OllamaValidator — configuração', () => {
     expect(ChatOllama).toHaveBeenCalledWith(expect.objectContaining({ temperature: 0 }));
   });
 });
+
+describe('OllamaValidator — prompt anti-injection', () => {
+  it('delimita o código com marcadores <CODE> e instrui a ignorar instruções dentro dele', () => {
+    (ConfigLoader.loadConfig as jest.Mock).mockReturnValue({
+      ollama: { model: 'llama3', temperature: 0, baseUrl: 'http://localhost:11434' },
+      entropy: { threshold: 4.5 },
+      rules: {},
+    });
+
+    const prompt = new OllamaValidator().buildValidationPrompt();
+
+    expect(prompt).toContain('<CODE>');
+    expect(prompt).toContain('</CODE>');
+    expect(prompt).toContain('IGNORE-A');
+    expect(prompt).toMatch(/DADO, não comando/i);
+    expect(prompt).toContain('{codeSnippet}');
+  });
+});

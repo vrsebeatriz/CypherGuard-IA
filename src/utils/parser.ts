@@ -1,6 +1,19 @@
 import JSON5 from 'json5';
 import chalk from 'chalk';
+import { z } from 'zod';
 import { AIValidationResult } from '../types';
+
+/**
+ * Schema estruturado da resposta da IA. Qualquer saída fora deste contrato é
+ * rejeitada (fail-safe → status "Unknown" na camada chamadora), impedindo que
+ * uma resposta malformada ou manipulada vire um "True Positive" silencioso.
+ */
+const AIValidationSchema = z.object({
+  status: z.enum(['True Positive', 'False Positive', 'Unknown']),
+  gravidade: z.enum(['Alta', 'Media', 'Baixa', 'Nenhuma']).default('Nenhuma'),
+  explicacao: z.string().default('Sem explicação'),
+  correcao: z.string().optional(),
+});
 
 /**
  * Localiza o primeiro objeto JSON top-level em `text`, respeitando aninhamento
@@ -68,12 +81,11 @@ export class ParserUtils {
     let parsedResult: AIValidationResult;
     try {
       const tempObj = JSON5.parse(jsonStr);
-      parsedResult = {
-        status: tempObj.status || 'Unknown',
-        gravidade: tempObj.gravidade || 'Nenhuma',
-        explicacao: tempObj.explicacao || 'Sem explicação',
-        correcao: undefined // Será preenchido na Extração 2
-      };
+      const schemaResult = AIValidationSchema.safeParse(tempObj);
+      if (!schemaResult.success) {
+        throw new Error(`Resposta da IA fora do schema esperado: ${schemaResult.error.message}`);
+      }
+      parsedResult = schemaResult.data;
     } catch (e: any) {
       console.error(chalk.red(`[Erro IA] Falha no Parse do Metadado JSON. Erro: ${e.message}`));
       throw e;

@@ -1,6 +1,6 @@
 ollama:
   model: 'llama3'
-  temperature: 0.1
+  temperature: 0
 entropy:
   threshold: 5.0
 rules:
