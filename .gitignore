@@ -9,3 +9,4 @@ temp_out.json
 cypherguard-report.sarif
 *.bak
 .cache/
+coverage/
