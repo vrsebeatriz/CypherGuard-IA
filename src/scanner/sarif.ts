@@ -23,6 +23,11 @@ export class SarifGenerator {
     };
   }
 
+  /** Expõe o log SARIF em memória para inspeção (ex.: testes) sem precisar serializar. */
+  public getLog(): any {
+    return this.sarifLog;
+  }
+
   /**
    * Adiciona um alerta validado como "True Positive" ao relatório SARIF.
    */
