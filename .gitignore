@@ -10,3 +10,6 @@ cypherguard-report.sarif
 *.bak
 .cache/
 coverage/
+data/
+scratch/
+.agents/
