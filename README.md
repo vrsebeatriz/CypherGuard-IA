@@ -1,4 +1,6 @@
-# CypherGuard AI — Enterprise SAST + SCA Platform
+# CypherGuard AI — Enterprise SAST + SCA Platform 🛡️
+
+[![Website Oficial](https://img.shields.io/badge/Website-CypherGuard_AI-blue?style=for-the-badge)](https://vrsebeatriz.github.io/CypherGuard-IA)
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)

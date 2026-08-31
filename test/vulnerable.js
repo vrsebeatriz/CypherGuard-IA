@@ -16,7 +16,7 @@ app.get('/safe_user', (req, res) => {
   const userId = req.query.id;
   // Safe using parameters, but semgrep might flag string concats or just depending on rules
   // Let's create another one with eval
-console.log(userId);
+  eval(userId);
 });
 
 const SECRET_KEY = "12345abcdef!@#$%"; // Hardcoded secret with some entropy

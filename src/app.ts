@@ -8,6 +8,7 @@ import { ASTAnalyzer } from './analyzer/ast';
 import { AIValidator } from './ai/validator';
 import { Patcher } from './scanner/patcher';
 import { SCAScanner } from './scanner/sca';
+import { HealthCheck } from './utils/healthCheck';
 import { UnifiedAlert } from './types';
 import { HistoryStorage, ScanHistoryEntry } from './history/storage';
 import { ConfigLoader } from './config/loader';
@@ -158,6 +159,15 @@ export function createApp(options: CreateAppOptions = {}) {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="cypherguard-report-${id}.sarif"`);
     res.send(JSON.stringify(sarifGen.getLog(), null, 2));
+  });
+
+  app.get('/api/health', requireSessionToken, async (req, res) => {
+    try {
+      const health = await HealthCheck.getFullHealth();
+      res.json(health);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.post('/api/scan', requireSessionToken, async (req, res) => {

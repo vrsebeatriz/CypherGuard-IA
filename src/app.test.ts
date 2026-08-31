@@ -128,7 +128,7 @@ describe('createApp — smoke test', () => {
       .get('/api/config')
       .set('X-CypherGuard-Token', 'teste-token-123');
     expect(response.status).toBe(200);
-    expect(response.body.currentModel).toBeDefined();
+    expect(response.body.model).toBeDefined();
   });
 
   it('falha ao chamar /api/export/sarif sem ID', async () => {

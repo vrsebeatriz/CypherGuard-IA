@@ -235,12 +235,6 @@ function renderCards(results, pathInput, activeModel){
 
     setTimeout(()=>{
       card.classList.remove('scanning');
-      const slot=card.querySelector('.verdict-slot');
-      const v=document.createElement('span');
-      v.className='verdict ' + (isFp ? 'fp' : 'tp');
-      v.innerHTML = isFp ? '✕ FALSE POSITIVE' : '✓ TRUE POSITIVE';
-      slot.appendChild(v);
-      requestAnimationFrame(()=>v.classList.add('stamp'));
     }, staggerDelay + 500);
   });
 }
@@ -344,6 +338,55 @@ async function loadSettings() {
     }
 }
 
+async function updateHealthStatus() {
+    try {
+      const token = localStorage.getItem('cypher_token') || 'local';
+      const res = await fetch('/api/health', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      const { ollama, openai, gemini, activeProvider } = data;
+      
+      // Update sidebar
+      const activeObjKey = activeProvider === 'google' ? 'gemini' : activeProvider;
+      const activeObj = data[activeObjKey];
+      const providerName = activeProvider === 'google' ? 'Gemini' : (activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1));
+      
+      const statusText = document.getElementById('statusText');
+      const statusDot = document.getElementById('statusDot');
+      
+      if (activeObj && activeObj.status === 'online') {
+        statusText.innerText = `${providerName} · ${activeObj.model} (Online, ${activeObj.latencyMs}ms)`;
+        statusDot.style.background = 'var(--success)';
+      } else {
+        statusText.innerText = `${providerName} · Offline / Config Inválida`;
+        statusDot.style.background = 'var(--fp)';
+      }
+      
+      // Update settings tab icons if they exist
+      const updateIcon = (id, obj) => {
+        const el = document.getElementById(id);
+        if(!el) return;
+        if(obj.status === 'online') {
+            el.innerHTML = `<span class="iconify" data-icon="lucide:check-circle" style="color:var(--success)"></span>`;
+            el.title = `Online (${obj.latencyMs}ms)`;
+        } else if (obj.status === 'unconfigured') {
+            el.innerHTML = `<span class="iconify" data-icon="lucide:minus-circle" style="color:var(--text-3)"></span>`;
+            el.title = `Não configurado`;
+        } else {
+            el.innerHTML = `<span class="iconify" data-icon="lucide:x-circle" style="color:var(--fp)"></span>`;
+            el.title = `Offline / Erro de conexão`;
+        }
+      };
+      
+      updateIcon('status-openai', openai);
+      updateIcon('status-gemini', gemini);
+      
+    } catch(err) {
+      console.log('Erro no health check', err);
+    }
+}
+
 function onProviderChange(){
   try {
       const provider = document.getElementById('providerSelect').value;
@@ -377,14 +420,18 @@ function onProviderChange(){
           container.innerHTML = `
             <div class="field" style="margin-top: 16px;">
               <label>API Key (${provider === 'openai' ? 'OpenAI' : 'Google Gemini'})</label>
-              <div class="key-input-wrap">
-                <input type="password" id="magicalApiKey" placeholder="${placeholder}" value="${savedKey}">
-                <button class="eye-btn" onclick="toggleKeyVisibility()" id="eyeBtn">👁</button>
+              <div class="key-input-wrap" style="display:flex; gap:10px; align-items:center;">
+                <div style="position:relative; flex:1;">
+                  <input type="password" id="magicalApiKey" placeholder="${placeholder}" value="${savedKey}" style="width:100%;">
+                  <button class="eye-btn" onclick="toggleKeyVisibility()" id="eyeBtn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%);">👁</button>
+                </div>
+                <span id="status-${provider}" style="display:flex; align-items:center; width:20px; height:20px;"></span>
               </div>
               <div class="hint" style="margin-top: 8px;">Armazenada apenas localmente, nunca enviada além do provedor selecionado.</div>
             </div>
           `;
           window.__currentProviderType = provider;
+          updateHealthStatus(); // Atualiza instantaneamente os ícones recém-criados
       }
       
   } catch (err) {

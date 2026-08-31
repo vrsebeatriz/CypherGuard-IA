@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CypherGuard AI — Segurança sem Ruídos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- =================== LANDING PAGE =================== -->
+<div id="page-landing" class="app-shell">
+  <nav class="landing-nav">
+    <div class="brand"><div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>CypherGuard<small>&nbsp;AI</small></div>
+    <a class="nav-cta" href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" style="text-decoration:none;">Ver no GitHub 🐙</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">SAST + SCA · Validação semântica por IA</div>
+      <h1>Segurança sem <span class="accent">Ruídos</span>. Auditoria de código impulsionada por IA.</h1>
+      <p>O CypherGuard AI cruza motores estáticos como o Semgrep com LLMs — locais ou em nuvem — para confirmar cada alerta antes de chegar até você. Menos triagem manual, mais vulnerabilidades reais corrigidas.</p>
+      <div class="hero-actions">
+        <a class="btn-primary" href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center;">🐙&nbsp; Ver no GitHub</a>
+        <a class="btn-ghost" href="#features">Ver funcionalidades</a>
+      </div>
+      <div class="hero-meta">
+        <div><span class="num">IA</span><span class="lbl">redução inteligente de falsos positivos</span></div>
+        <div><span class="num">100%</span><span class="lbl">local-first, código nunca sai da máquina*</span></div>
+        <div><span class="num">SARIF</span><span class="lbl">exportação nativa p/ CI/CD</span></div>
+      </div>
+    </div>
+
+    <div class="terminal solid-panel-hi">
+      <div class="term-bar">
+        <span class="term-dot" style="background:#ff5f57"></span>
+        <span class="term-dot" style="background:#febc2e"></span>
+        <span class="term-dot" style="background:#28c840"></span>
+        <span class="term-title">cypherguard scan ./src</span>
+      </div>
+      <div class="term-body" id="termBody"></div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="features-head">
+      <div class="eyebrow">Como funciona</div>
+      <h2>Três pilares, um único veredito confiável.</h2>
+      <p>Cada camada existe para eliminar uma fonte diferente de ruído — do motor de análise à decisão final sobre exportar ou não um alerta.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="f-card solid-panel">
+        <div class="f-icon c1">◈</div>
+        <h3>Detecção Híbrida</h3>
+        <p>SAST tradicional e análise de AST (Semgrep) localizam candidatos a vulnerabilidade; a validação semântica por IA decide o que é real, entendendo contexto e fluxo de dados que regras estáticas não alcançam.</p>
+        <div class="f-foot">Semgrep · AST · LLM Judge</div>
+      </div>
+      <div class="f-card solid-panel">
+        <div class="f-icon c2">⌁</div>
+        <h3>Privacidade Local-First</h3>
+        <p>Inferência via Ollama roda direto na sua máquina — seu código nunca trafega para fora. Precisa de mais poder de raciocínio? Ative provedores em nuvem como OpenAI ou Gemini quando fizer sentido.</p>
+        <div class="f-foot">Ollama · OpenAI · Gemini</div>
+      </div>
+      <div class="f-card solid-panel">
+        <div class="f-icon c3">⇩</div>
+        <h3>Exportação Universal</h3>
+        <p>Todo scan gera um relatório no padrão SARIF, pronto para ser consumido por esteiras de CI/CD, GitHub Code Scanning ou qualquer ferramenta compatível com o formato.</p>
+        <div class="f-foot">SARIF 2.1.0</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="landing.js"></script>
+</body>
+</html>
