@@ -5,9 +5,11 @@ import { ConfigLoader } from './loader';
 
 describe('ConfigLoader.loadConfig', () => {
   it('retorna a configuração padrão quando o arquivo não existe', () => {
-    const config = ConfigLoader.loadConfig(path.join(os.tmpdir(), 'arquivo-inexistente-xyz.yml'));
-    expect(config.ollama.model).toBe('llama3');
-    expect(config.entropy.threshold).toBe(4.5);
+    const tmpPath = path.join(os.tmpdir(), 'arquivo-inexistente-xyz.yml');
+    const config = ConfigLoader.loadConfig(tmpPath);
+    // A chave inválida é ignorada, mantendo o default
+    expect(config.ollama?.model).toBe('llama3');
+    expect(config.entropy?.threshold).toBe(4.5);
   });
 
   it('mescla valores customizados do YAML com os padrões', () => {
@@ -16,9 +18,9 @@ describe('ConfigLoader.loadConfig', () => {
 
     const config = ConfigLoader.loadConfig(tmpPath);
 
-    expect(config.ollama.model).toBe('mistral');
-    expect(config.ollama.baseUrl).toBe('http://localhost:11434');
-    expect(config.entropy.threshold).toBe(5.0);
+    expect(config.ollama?.model).toBe('mistral');
+    expect(config.ollama?.baseUrl).toBe('http://localhost:11434');
+    expect(config.entropy?.threshold).toBe(5.0);
 
     fs.unlinkSync(tmpPath);
   });
@@ -29,7 +31,7 @@ describe('ConfigLoader.loadConfig', () => {
 
     const config = ConfigLoader.loadConfig(tmpPath);
 
-    expect(config.ollama.model).toBe('llama3');
+    expect(config.ollama?.model).toBe('llama3');
 
     fs.unlinkSync(tmpPath);
   });

@@ -1,4 +1,6 @@
 import { ChatOllama } from '@langchain/ollama';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { AIValidationResult, CypherConfig } from '../types';
@@ -7,24 +9,63 @@ import { KnowledgeBase } from './knowledge';
 import chalk from 'chalk';
 import { ParserUtils } from '../utils/parser';
 import { getCustomFocus } from './customFocus';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
-export class OllamaValidator {
-  private llm: ChatOllama;
+export class AIValidator {
+  private llm!: any;
   private config: CypherConfig;
 
   constructor() {
     this.config = ConfigLoader.loadConfig();
-    this.llm = new ChatOllama({
-      baseUrl: this.config.ollama.baseUrl,
-      model: this.config.ollama.model,
-      temperature: this.config.ollama.temperature ?? 0,
-    });
+    this.initializeModel();
   }
 
-  /**
-   * Template do prompt de validação. Exposto como método para permitir
-   * testes da estrutura (marcadores anti-injection) sem invocar o LLM.
-   */
+  private initializeModel() {
+    const aiConf = this.config.ai || this.config.ollama;
+    const provider = this.config.ai?.provider || 'ollama';
+    const modelName = aiConf?.model || 'llama3';
+    const temperature = aiConf?.temperature ?? 0;
+    
+    // Ler as chaves específicas
+    const openaiKey = this.config.ai?.openaiApiKey || this.config.ai?.apiKey;
+    const googleKey = this.config.ai?.googleApiKey || this.config.ai?.apiKey;
+
+    if (provider === 'openai') {
+      this.llm = new ChatOpenAI({
+        modelName: modelName,
+        temperature: temperature,
+        apiKey: openaiKey || process.env.OPENAI_API_KEY,
+      });
+    } else if (provider === 'google') {
+      this.llm = new ChatGoogleGenerativeAI({
+        model: modelName,
+        temperature: temperature,
+        apiKey: googleKey || process.env.GOOGLE_API_KEY,
+      });
+    } else {
+      // Default to ollama
+      this.llm = new ChatOllama({
+        baseUrl: aiConf?.baseUrl || 'http://localhost:11434',
+        model: modelName,
+        temperature: temperature,
+      });
+    }
+  }
+
+  public updateModel(modelName: string, provider?: 'ollama' | 'openai' | 'google', openaiApiKey?: string, googleApiKey?: string): void {
+    if (!this.config.ai) this.config.ai = {};
+    
+    this.config.ai.model = modelName;
+    if (provider) this.config.ai.provider = provider;
+    
+    // Atualiza apenas as chaves recebidas, preservando as antigas
+    if (openaiApiKey !== undefined) this.config.ai.openaiApiKey = openaiApiKey;
+    if (googleApiKey !== undefined) this.config.ai.googleApiKey = googleApiKey;
+
+    ConfigLoader.saveConfig(this.config);
+    this.initializeModel();
+  }
+
   public buildValidationPrompt(): string {
     return `
 Você é um auditor de segurança sênior. Sua tarefa é validar se um alerta de segurança é um Verdadeiro Positivo ou Falso Positivo.
@@ -73,19 +114,14 @@ exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
 `;
   }
 
-  /**
-   * Envia um alerta suspeito para validação do LLM.
-   */
   public async validateAlert(
     codeSnippet: string,
     vulnerability: string,
     context: string
   ): Promise<AIValidationResult> {
     const parser = new StringOutputParser();
-
     const prompt = PromptTemplate.fromTemplate(this.buildValidationPrompt());
-
-    const chain = prompt.pipe(this.llm).pipe(parser);
+    const chain = prompt.pipe(this.llm as any).pipe(parser);
     
     try {
       const resultString = await chain.invoke({
@@ -97,10 +133,8 @@ exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
       });
 
       return ParserUtils.extractValidationResult(resultString);
-
     } catch (error: any) {
       console.error(chalk.red(`\n[Erro IA] Falha na extração de dupla fase: ${error.message}`));
-      
       return {
         status: 'Unknown',
         gravidade: 'Nenhuma',
@@ -109,8 +143,3 @@ exec("ping -c 1 " + safeHost, (err, stdout) => {{ ... }});
     }
   }
 }
-
-
-
-
-

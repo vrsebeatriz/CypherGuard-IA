@@ -35,15 +35,24 @@ export interface AIValidationResult {
 }
 
 export interface CypherConfig {
-  ollama: {
-    model: string;
-    temperature: number;
-    baseUrl: string;
+  ai?: {
+    provider?: 'ollama' | 'openai' | 'google';
+    model?: string;
+    temperature?: number;
+    baseUrl?: string;
+    apiKey?: string; // legacys
+    openaiApiKey?: string;
+    googleApiKey?: string;
   };
-  entropy: {
-    threshold: number;
+  ollama?: {
+    model?: string;
+    temperature?: number;
+    baseUrl?: string;
   };
-  rules: {
+  entropy?: {
+    threshold?: number;
+  };
+  rules?: {
     customPrompts?: Record<string, string>;
   };
 }

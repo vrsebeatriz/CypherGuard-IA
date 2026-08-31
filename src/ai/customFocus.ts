@@ -9,13 +9,13 @@ import { CypherConfig } from '../types';
  * houver customPrompts ou nenhum match.
  */
 export function getCustomFocus(
-  customPrompts: CypherConfig['rules']['customPrompts'],
-  vulnerability: string
+  customPrompts: Record<string, string> | undefined,
+  vulnerabilityName: string
 ): string {
   if (!customPrompts) return '';
 
   const matchKey = Object.keys(customPrompts).find((key) =>
-    vulnerability.toLowerCase().includes(key.toLowerCase())
+    vulnerabilityName.toLowerCase().includes(key.toLowerCase())
   );
 
   return matchKey ? `DIRETRIZES CUSTOMIZADAS DA EQUIPE:\n${customPrompts[matchKey]}\n` : '';
