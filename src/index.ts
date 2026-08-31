@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { SemgrepScanner } from './scanner/semgrep';
-import { OllamaValidator } from './ai/ollama';
+import { AIValidator } from './ai/validator';
 import { ASTAnalyzer } from './analyzer/ast';
 import { EntropyAnalyzer } from './analyzer/entropy';
 import { SarifGenerator } from './scanner/sarif';
@@ -95,7 +95,7 @@ program
 
         console.log(chalk.cyan(`\nIniciando Camadas 2 (AST) e 3 (IA LLM) para ${findingsCount} alertas...`));
 
-        const ollama = new OllamaValidator();
+        const ollama = new AIValidator();
         const ast = new ASTAnalyzer();
 
         for (let i = 0; i < findingsCount; i++) {
@@ -105,7 +105,7 @@ program
           console.log(chalk.gray(`Regra:   `) + chalk.magenta(finding.check_id));
 
           const snippet = getFileSnippet(finding.path, finding.start.line, finding.end.line);
-          const entropyThreshold = config.entropy.threshold;
+          const entropyThreshold = config.entropy?.threshold || 4.5;
 
           // Fase 2: Taint Analysis e Entropia
           let suspiciousLiterals: string[] = [];

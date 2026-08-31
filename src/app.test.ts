@@ -112,4 +112,30 @@ describe('createApp — smoke test', () => {
 
     expect(status).toBe(429);
   });
+
+  it('permite acessar /api/history com token correto', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .get('/api/history')
+      .set('X-CypherGuard-Token', 'teste-token-123');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  it('permite acessar /api/config com token correto', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .get('/api/config')
+      .set('X-CypherGuard-Token', 'teste-token-123');
+    expect(response.status).toBe(200);
+    expect(response.body.currentModel).toBeDefined();
+  });
+
+  it('falha ao chamar /api/export/sarif sem ID', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .get('/api/export/sarif')
+      .set('X-CypherGuard-Token', 'teste-token-123');
+    expect(response.status).toBe(400);
+  });
 });

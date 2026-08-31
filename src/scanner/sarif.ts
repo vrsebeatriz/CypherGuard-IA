@@ -13,7 +13,7 @@ export class SarifGenerator {
           tool: {
             driver: {
               name: "CypherGuard AI",
-              informationUri: "https://github.com/beatriz/cypherguard-ai",
+              informationUri: "https://github.com/vrsebeatriz/CypherGuard-IA",
               rules: []
             }
           },

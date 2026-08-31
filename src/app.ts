@@ -5,10 +5,13 @@ import path from 'path';
 import fs from 'fs';
 import { SemgrepScanner } from './scanner/semgrep';
 import { ASTAnalyzer } from './analyzer/ast';
-import { OllamaValidator } from './ai/ollama';
+import { AIValidator } from './ai/validator';
 import { Patcher } from './scanner/patcher';
 import { SCAScanner } from './scanner/sca';
 import { UnifiedAlert } from './types';
+import { HistoryStorage, ScanHistoryEntry } from './history/storage';
+import { ConfigLoader } from './config/loader';
+import { SarifGenerator } from './scanner/sarif';
 
 export interface CreateAppOptions {
   sessionToken?: string;
@@ -24,7 +27,7 @@ export function createApp(options: CreateAppOptions = {}) {
   const sessionToken = options.sessionToken ?? crypto.randomBytes(24).toString('hex');
 
   function requireSessionToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const provided = req.header('X-CypherGuard-Token');
+    const provided = req.header('X-CypherGuard-Token') || req.query.token;
     if (provided !== sessionToken) {
       return res.status(401).json({ error: 'Token de sessão inválido ou ausente.' });
     }
@@ -70,13 +73,92 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.use(express.json({ limit: '2mb' }));
   app.get(['/', '/index.html'], serveIndexWithToken);
-  app.use(express.static(path.join(__dirname, '../public')));
+  app.use(express.static(path.join(__dirname, '../public'), {
+    etag: false,
+    maxAge: 0,
+    setHeaders: (res, path) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }));
   app.use('/api', rateLimiter);
 
   const semgrep = new SemgrepScanner();
   const astAnalyzer = new ASTAnalyzer();
-  const aiValidator = new OllamaValidator();
+  const aiValidator = new AIValidator();
   const scaScanner = new SCAScanner();
+  const historyStorage = new HistoryStorage();
+
+  app.get('/api/history', requireSessionToken, (req, res) => {
+    try {
+      const history = historyStorage.getHistory();
+      res.json(history);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/config', requireSessionToken, (req, res) => {
+    try {
+      const fullConfig = ConfigLoader.loadConfig();
+      const aiConf = fullConfig.ai || {};
+      res.json({
+        provider: aiConf.provider || 'ollama',
+        model: aiConf.model || 'llama3',
+        openaiApiKey: aiConf.openaiApiKey || aiConf.apiKey || '',
+        googleApiKey: aiConf.googleApiKey || aiConf.apiKey || ''
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/config', requireSessionToken, (req, res) => {
+    try {
+      const { model, provider, openaiApiKey, googleApiKey } = req.body;
+
+      if (!model) {
+        return res.status(400).json({ error: 'Model is required.' });
+      }
+
+      if (provider === 'openai' && !openaiApiKey && !process.env.OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API Key is required.' });
+      }
+      if (provider === 'google' && !googleApiKey && !process.env.GOOGLE_API_KEY) {
+        return res.status(400).json({ error: 'Google API Key is required.' });
+      }
+
+      aiValidator.updateModel(model, provider, openaiApiKey, googleApiKey);
+      ConfigLoader.saveConfig(aiValidator['config']);
+      res.json({ success: true, model });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  
+  app.get('/api/export/sarif', requireSessionToken, (req, res) => {
+    const { id } = req.query;
+    let results: UnifiedAlert[] = [];
+    if (id) {
+       const stored = historyStorage.getFullResults(id as string);
+       if (!stored) return res.status(404).json({ error: 'Scan not found' });
+       results = stored;
+    } else {
+       return res.status(400).json({ error: 'ID is required for SARIF export' });
+    }
+
+    const sarifGen = new SarifGenerator();
+    for (const alert of results) {
+      if (alert.type === 'SAST' && alert.aiValidation && alert.aiValidation.status === 'True Positive') {
+        sarifGen.addResult(alert.finding!, alert.aiValidation);
+      }
+    }
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="cypherguard-report-${id}.sarif"`);
+    res.send(JSON.stringify(sarifGen.getLog(), null, 2));
+  });
 
   app.post('/api/scan', requireSessionToken, async (req, res) => {
     const { targetPath } = req.body;
@@ -138,7 +220,7 @@ export function createApp(options: CreateAppOptions = {}) {
           continue;
         }
 
-        console.log(`[Server] Solicitando auditoria Llama 3 para Alerta ${i + 1}...`);
+        console.log(`[Server] Solicitando auditoria da IA para Alerta ${i + 1}...`);
         const aiResult = await aiValidator.validateAlert(codeSnippet, finding.check_id, finding.extra.message);
 
         processedAlerts.push({
@@ -159,7 +241,20 @@ export function createApp(options: CreateAppOptions = {}) {
       }
 
       console.log(`[Server] Varredura completa enviada para o frontend.`);
-      res.json({ results: processedAlerts, scaStatus: scaOutcome.status });
+      
+      const scanId = crypto.randomUUID();
+      const config = ConfigLoader.loadConfig();
+      const historyEntry: ScanHistoryEntry = {
+        id: scanId,
+        timestamp: new Date().toISOString(),
+        targetPath: fullPath,
+        totalAlerts: processedAlerts.length,
+        modelUsed: config.ai?.model || config.ollama?.model || 'llama3',
+        scaStatus: scaOutcome.status
+      };
+      historyStorage.addEntry(historyEntry, processedAlerts);
+
+      res.json({ id: scanId, results: processedAlerts, scaStatus: scaOutcome.status });
     } catch (error: any) {
       console.error('Erro durante o scan:', error);
       res.status(500).json({ error: error.message });

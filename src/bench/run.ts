@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { OllamaValidator } from '../ai/ollama';
+import { AIValidator } from '../ai/validator';
 
 interface BenchmarkSample {
   id: string;
@@ -19,7 +19,7 @@ async function main() {
   const samples = loadSamples();
   console.log(`[Bench] ${samples.length} amostras carregadas. Requer Ollama local rodando com o modelo configurado.\n`);
 
-  const validator = new OllamaValidator();
+  const validator = new AIValidator();
   let tp = 0;
   let tn = 0;
   let fp = 0;
