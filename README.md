@@ -34,6 +34,9 @@ All of this operates **100% offline** for code analysis. The only external call 
 - **Fail-Closed SCA**: If the OSV.dev call fails, the scan reports an explicit error status instead of silently returning "no vulnerabilities found".
 - **Semgrep Error Reporting**: `semgrep.errors` is now inspected and surfaced — scan/rule failures are reported instead of passing silently.
 - **Automated Testing & CI**: Unit testing with Jest across the core pipeline modules (106 tests), coupled with a GitHub Actions CI pipeline.
+- **Local Persistence & History (New)**: Historical scans are persisted automatically without heavy databases, keeping a `history.json` and generating SARIF on the fly using a robust local-first strategy.
+- **UI Model Selection (New)**: Ability to change your active audit model (e.g. from Llama 3 to Qwen2.5-Coder) directly from the Web Interface without a server restart (Hot-Swap).
+- **Tab Navigation & Web SARIF Export (New)**: The Liquid Glass Dashboard now includes a unified navigation system with Settings, History and Scan tabs, along with 1-click SARIF Export directly from your browser.
 
 ---
 

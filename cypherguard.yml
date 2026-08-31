@@ -1,8 +1,15 @@
-ollama:
-  model: 'llama3'
+ai:
+  provider: ollama
+  model: gemma2:9b
   temperature: 0
+  baseUrl: http://localhost:11434
+  apiKey: ''
+  openaiApiKey: ''
+  googleApiKey: ''
 entropy:
-  threshold: 5.0
+  threshold: 5
 rules:
   customPrompts:
-    sql-injection: "Foque especialmente em identificar se há o uso de query builders como Knex ou Sequelize."
+    sql-injection: >-
+      Foque especialmente em identificar se há o uso de query builders como Knex
+      ou Sequelize.
