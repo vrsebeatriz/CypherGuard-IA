@@ -38,7 +38,8 @@ All of this operates **100% offline** for code analysis. The only external call 
 - **Automated Testing & CI**: Unit testing with Jest across the core pipeline modules (106 tests), coupled with a GitHub Actions CI pipeline.
 - **Local Persistence & History (New)**: Historical scans are persisted automatically without heavy databases, keeping a `history.json` and generating SARIF on the fly using a robust local-first strategy.
 - **UI Model Selection (New)**: Ability to change your active audit model (e.g. from Llama 3 to Qwen2.5-Coder) directly from the Web Interface without a server restart (Hot-Swap).
-- **Tab Navigation & Web SARIF Export (New)**: The Liquid Glass Dashboard now includes a unified navigation system with Settings, History and Scan tabs, along with 1-click SARIF Export directly from your browser.
+- **Tab Navigation & Web SARIF Export (New)**: The Ethereal Glass Dashboard now includes a unified navigation system with Settings, History and Scan tabs, along with 1-click SARIF Export directly from your browser.
+- **Agency-Tier UI/UX (New)**: Completely redesigned with an asymmetrical Bento Grid architecture, RBAC Auth modals, and a live Interactive Inference Engine playground.
 
 ---
 
@@ -88,7 +89,7 @@ graph TD
 | **Artificial Intelligence** | Ollama (Llama 3 / Mistral), LangChain, Dual-Phase Prompt Engineering |
 | **Dependency Auditing** | OSV.dev API (Google Open Source), CVE/NVD Database |
 | **Web Server** | Express.js (REST API: `/api/scan`, `/api/apply`) |
-| **Dashboard UI** | Vanilla JS, Tailwind CSS, Liquid Glass Design System, Iconify |
+| **Dashboard UI** | Vanilla JS, Ethereal Glass Design System, Bento Grid, Phosphor Icons |
 | **CLI Interface** | Inquirer.js |
 
 ---
