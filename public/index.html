@@ -6,625 +6,615 @@
 <title>CypherGuard AI — Segurança sem Ruídos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Phosphor Icons (Light) -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <!-- =================== LANDING PAGE =================== -->
 <div id="page-landing" class="app-shell">
-  <!-- Ambient Glow & Overlay -->
-  <div class="ambient-glow"></div>
-  <div class="grid-overlay"></div>
-
   <!-- Interactive 3D Canvas -->
-  <canvas id="hero3dCanvas"></canvas>
+  <canvas id="hero3dCanvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:0.4; mix-blend-mode: screen;"></canvas>
 
-  <!-- Navigation -->
-  <header class="landing-nav-wrap">
-    <nav class="landing-nav-bar">
-      <div class="brand-wrap" style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="goToLanding()">
-        <div class="brand-icon-holo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-        </div>
-        <div class="brand-title-wrap">
-          CypherGuard <span class="dim">AI</span>
-        </div>
+  <!-- Fluid Island Navigation -->
+  <header class="fluid-nav-wrap">
+    <nav class="fluid-nav">
+      <div class="nav-brand" onclick="goToLanding()">
+        <i class="ph-light ph-shield-check" style="font-size:24px;"></i>
+        CypherGuard
       </div>
-
-      <div style="display:flex; align-items:center; gap:12px;">
-        <button class="action-btn-sm" style="padding:8px 16px; border-radius:100px; font-size:12.5px;" onclick="openLoginModal()">Entrar / RBAC</button>
-        <button class="nav-cta" onclick="goToApp()">Ir para o Dashboard →</button>
+      <div class="nav-links">
+        <button onclick="goToLanding()">Motor Híbrido</button>
+        <button onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Arquitetura</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; margin-left: 16px; padding-left: 24px; border-left: 1px solid var(--border-hi);">
+        <button style="font-size:13px; font-weight:600; color:var(--text-2);" onclick="openLoginModal()">Entrar (RBAC)</button>
+        <button class="btn-primary" onclick="goToApp()">
+          Dashboard
+          <div class="btn-primary-icon"><i class="ph-light ph-arrow-up-right"></i></div>
+        </button>
       </div>
     </nav>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero-section-new">
-    <div class="landing-container">
-      <div class="hero-badge-pill">
-        <span class="pulse-dot-wrap">
-          <span class="pulse-dot-ring"></span>
-          <span class="pulse-dot"></span>
-        </span>
-        <span>v1.2.0 · Local-First AI SAST Engine</span>
-      </div>
-
-      <h1 class="hero-h1-premium">
-        Segurança de Código <br>
-        <span class="gradient-text-emerald">Sem Ruídos nem Falsos Alarmes.</span>
-      </h1>
-
-      <p class="hero-desc-premium">
-        O <strong>CypherGuard AI</strong> cruza a velocidade do Semgrep com a validação semântica de LLMs locais (Ollama). Entende o fluxo de dados real, descarta alertas triviais e gera correções automáticas antes do commit.
-      </p>
-
-      <div class="hero-actions-row">
-        <div class="cli-install-box" id="cliInstallBox" title="Clique para copiar comando">
-          <span class="cli-prompt-symbol">❯</span>
-          <span>npx cypherguard-ai scan ./src</span>
-          <button class="btn-copy-icon" aria-label="Copiar comando">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
+  <!-- Editorial Split Hero -->
+  <section class="editorial-hero">
+    <div class="hero-grid">
+      <!-- Left Column (Typography) -->
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <i class="ph-light ph-cpu"></i>
+          Local-First Engine v1.2
+        </div>
+        
+        <h1 class="hero-h1">
+          Segurança de Código <br>
+          <span class="hl">Sem Ruídos.</span>
+        </h1>
+        
+        <p class="hero-desc">
+          Cruza a velocidade do Semgrep com a precisão semântica de LLMs locais. O CypherGuard detecta vulnerabilidades, descarta falsos positivos e escreve o patch — tudo offline e no seu hardware.
+        </p>
+        
+        <div class="hero-actions">
+          <button class="btn-primary" style="padding: 6px 6px 6px 24px; font-size: 15px;" onclick="goToApp()">
+            Acessar Auditoria
+            <div class="btn-primary-icon" style="width: 40px; height: 40px;"><i class="ph-light ph-arrow-right"></i></div>
           </button>
-          <div class="copy-feedback-bubble" id="cliCopyBubble">Copiado!</div>
-        </div>
-
-        <button class="btn-primary-glow" onclick="goToApp()">
-          <span>Acessar Painel / Dashboard</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-
-      <div class="proof-ribbon">
-        <div class="proof-item">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>100% Local-First (Zero Cloud Leak)</span>
-        </div>
-        <div class="proof-item">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>Exportação Padrão SARIF 2.1.0</span>
-        </div>
-        <div class="proof-item">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>Llama 3 · Qwen 2.5 · DeepSeek · Gemini</span>
+          
+          <div class="cli-box">
+            <span class="prompt">❯</span>
+            <span>npx cypherguard scan .</span>
+            <button onclick="navigator.clipboard.writeText('npx cypherguard scan .'); document.getElementById('cliBubble').classList.add('active'); setTimeout(()=>document.getElementById('cliBubble').classList.remove('active'), 2000);">
+              <i class="ph-light ph-copy"></i>
+            </button>
+            <div class="copy-feedback-bubble" id="cliBubble">Copiado!</div>
+          </div>
         </div>
       </div>
+
+
+      <!-- Right Column (Interactive Playground) -->
+      <div class="hero-right">
+        <div class="bezel-shell hero-ui-window">
+          <div class="bezel-core" style="padding: 0;">
+            <div class="win-header">
+              <div style="display:flex; gap:6px;">
+                <div class="win-dot r"></div>
+                <div class="win-dot y"></div>
+                <div class="win-dot g"></div>
+              </div>
+              <div class="win-title">MOTOR DE INFERÊNCIA LIVE</div>
+            </div>
+            
+            <div class="pg-tabs">
+              <button class="pg-tab-btn active" data-tab="logs" onclick="switchPlaygroundTab('logs')">Live Logs</button>
+              <button class="pg-tab-btn" data-tab="ai" onclick="switchPlaygroundTab('ai')">Raciocínio IA</button>
+              <button class="pg-tab-btn" data-tab="diff" onclick="switchPlaygroundTab('diff')">Patch .diff</button>
+            </div>
+            
+            <div class="win-body">
+              <div class="play-view active" id="view-logs">
+                <div class="log-row"><span class="log-prefix">[Semgrep]</span> <span class="log-text">Buscando regras em src/auth/login.py...</span></div>
+                <div class="log-row"><span class="log-prefix">[Semgrep]</span> <span class="log-warn" style="color:var(--warn);">Possível SQLi na linha 42. (rule: python.sqli)</span></div>
+                <div class="log-row" style="margin-top:12px;"><span class="log-prefix">[CypherGuard]</span> <span class="log-dim">Delegando AST e fluxo de dados para LLM local (Ollama/Qwen)...</span></div>
+                <div class="log-row"><span class="log-prefix">[LLM_Judge]</span> <span class="log-text">Analisando sanitizadores em escopo e query string.</span></div>
+                <div class="log-row" style="margin-top:12px;"><span class="log-prefix">[CypherGuard]</span> <span class="log-danger" style="color:var(--danger); font-weight:700;">Vulnerabilidade CONFIRMADA: O input 'username' não passa por parameter binding.</span></div>
+                <div class="log-row"><span class="log-prefix">[Patcher]</span> <span class="log-text">Gerando correção (Unified Diff)...</span></div>
+              </div>
+              
+              <div class="play-view" id="view-ai" style="font-size:12px; line-height: 1.6;">
+                <div style="color:var(--accent); margin-bottom:8px;">❯ SYSTEM PROMPT ACTIVE</div>
+                <div style="color:var(--text-3); margin-bottom:16px;">O LLM recebe a AST gerada pelo Semgrep e avalia a viabilidade do ataque:</div>
+                <div style="background:var(--void); border:1px solid var(--border); padding:12px; border-radius:var(--radius-s);">
+                  <strong>Análise:</strong> A query <code>f"SELECT * FROM users WHERE username = '{username}'"</code> é construída usando f-strings.<br><br>
+                  <strong>Contexto:</strong> A variável <code>username</code> vem diretamente de <code>req.body.get('username')</code> sem sanitização prévia no fluxo atual.<br><br>
+                  <strong>Veredito:</strong> Verdadeiro Positivo.<br><br>
+                  <strong>Estratégia de Correção:</strong> Refatorar a query para utilizar parâmetros preparados (prepared statements).
+                </div>
+              </div>
+              
+              <div class="play-view" id="view-diff">
+                 <div class="diff-container" style="background:var(--void); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden;">
+                    <div class="diff-row ctx"><span class="diff-sign"> </span> def authenticate(req):</div>
+                    <div class="diff-row ctx"><span class="diff-sign"> </span>     username = req.body.get("username")</div>
+                    <div class="diff-row ctx"><span class="diff-sign"> </span>     cursor = db.cursor()</div>
+                    <div class="diff-row del"><span class="diff-sign">-</span>     query = f"SELECT * FROM users WHERE username = '{username}'"</div>
+                    <div class="diff-row del"><span class="diff-sign">-</span>     cursor.execute(query)</div>
+                    <div class="diff-row add"><span class="diff-sign">+</span>     query = "SELECT * FROM users WHERE username = ?"</div>
+                    <div class="diff-row add"><span class="diff-sign">+</span>     cursor.execute(query, (username,))</div>
+                    <div class="diff-row ctx"><span class="diff-sign"> </span>     return cursor.fetchone()</div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
-  <!-- Interactive Security Playground -->
-  <section class="playground-section" id="playground">
-    <div class="landing-container">
-      <div class="section-head-new">
-        <div class="section-eyebrow-new">
-          <span>⚡</span> Playground Interativo
-        </div>
-        <h2 class="section-title-new">Experimente o Motor de Análise Semântica</h2>
-        <p class="section-desc-new">Escolha um cenário real e veja como o CypherGuard analisa a AST, aciona o LLM e constrói o patch de correção.</p>
-      </div>
-
-      <div class="playground-shell">
-        <div class="scenario-selector-bar">
-          <span class="scenario-label">Cenário de Teste:</span>
-          <div class="scenario-pills">
-            <button class="scenario-btn active" data-scenario="sqli">
-              <span>SQLi em Autenticação</span>
-            </button>
-            <button class="scenario-btn" data-scenario="path">
-              <span>Path Traversal (LFI)</span>
-            </button>
-            <button class="scenario-btn" data-scenario="secret">
-              <span>Falso Positivo Descartado</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="playground-header">
-          <div class="window-controls">
-            <span class="w-dot red"></span>
-            <span class="w-dot yellow"></span>
-            <span class="w-dot green"></span>
-          </div>
-
-          <div class="playground-tabs">
-            <button class="tab-btn active" data-tab="logs">
-              <span>▶</span> Execução Live
-            </button>
-            <button class="tab-btn" data-tab="ai">
-              <span>⚡</span> Raciocínio da IA
-            </button>
-            <button class="tab-btn" data-tab="diff">
-              <span>🛡</span> Patch Automático
-            </button>
-            <button class="tab-btn" data-tab="sarif">
-              <span>📄</span> SARIF 2.1.0
-            </button>
-          </div>
-        </div>
-
-        <div class="playground-body">
-          <div class="play-view active" id="view-logs"></div>
-          <div class="play-view" id="view-ai"></div>
-          <div class="play-view" id="view-diff"></div>
-          <div class="play-view" id="view-sarif"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Bento Grid Architecture -->
+  <!-- Asymmetrical Bento Architecture -->
   <section class="bento-section" id="features">
-    <div class="landing-container">
-      <div class="section-head-new">
-        <div class="section-eyebrow-new">
-          <span>◈</span> Arquitetura Híbrida
-        </div>
-        <h2 class="section-title-new">Por que o CypherGuard AI Supera SASTs Convencionais</h2>
-        <p class="section-desc-new">Uma abordagem em pipeline de precisão militar para auditoria contínua sem ruídos.</p>
-      </div>
+    <div class="section-head">
+      <h2 class="section-title">Engenharia Híbrida. <br><span style="color:var(--accent);">Zero Ruídos.</span></h2>
+      <p class="hero-desc" style="font-size: 16px;">Combinamos a precisão sintática de um analisador estático com o raciocínio profundo de um modelo de linguagem.</p>
+    </div>
 
-      <div class="bento-grid">
-        <div class="bento-card bento-col-8">
-          <span class="bento-badge-tag">Pipeline de 3 Etapas</span>
-          <h3 class="bento-card-title">Motor Híbrido: Da AST ao Veredito Limpo</h3>
-          <p class="bento-card-desc">O Semgrep localiza regras sintáticas em milissegundos; a IA analisa o contexto de execução, sanitizadores e dependências para validar se o vetor de ataque é viável.</p>
-
-          <div class="pipeline-flow-wrap">
-            <div class="flow-node active">
-              <div class="flow-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+    <div class="bento-grid">
+      
+      <!-- Col 8: Pipeline -->
+      <div class="bento-item col-8">
+        <div class="bezel-shell">
+          <div class="bezel-core">
+            <span class="bento-badge-tag">Pipeline de 3 Etapas</span>
+            <div class="bento-content">
+              <h3 class="bento-title">Da AST ao Veredito Limpo</h3>
+              <p class="bento-desc">O Semgrep localiza regras em milissegundos; a IA analisa o contexto, sanitizadores e dependências para validar a viabilidade do ataque.</p>
+              
+              <div class="pipeline-flow-wrap">
+                <div class="flow-node active">
+                  <div class="flow-icon"><i class="ph-light ph-file-code"></i></div>
+                  <strong style="font-size:12px; color:var(--text-1);">Código</strong>
+                </div>
+                <div class="flow-arrow">➔</div>
+                <div class="flow-node active">
+                  <div class="flow-icon"><i class="ph-light ph-tree-structure"></i></div>
+                  <strong style="font-size:12px; color:var(--text-1);">AST Semgrep</strong>
+                </div>
+                <div class="flow-arrow">➔</div>
+                <div class="flow-node active">
+                  <div class="flow-icon"><i class="ph-light ph-brain"></i></div>
+                  <strong style="font-size:12px; color:var(--text-1);">LLM Judge</strong>
+                </div>
+                <div class="flow-arrow">➔</div>
+                <div class="flow-node result">
+                  <div class="flow-icon"><i class="ph-light ph-check-circle"></i></div>
+                  <strong style="font-size:12px; color:var(--accent);">Patch Seguro</strong>
+                </div>
               </div>
-              <strong style="font-size:12px; color:var(--text-1);">1. Código Fonte</strong>
-              <span style="font-size:10px; color:var(--text-3);">Python, TS, JS</span>
             </div>
-            <div class="flow-arrow">➔</div>
-            <div class="flow-node active">
-              <div class="flow-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-              </div>
-              <strong style="font-size:12px; color:var(--text-1);">2. Semgrep AST</strong>
-              <span style="font-size:10px; color:var(--text-3);">Candidatos</span>
-            </div>
-            <div class="flow-arrow">➔</div>
-            <div class="flow-node active">
-              <div class="flow-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-              </div>
-              <strong style="font-size:12px; color:var(--text-1);">3. LLM Judge</strong>
-              <span style="font-size:10px; color:var(--text-3);">Validação</span>
-            </div>
-            <div class="flow-arrow">➔</div>
-            <div class="flow-node active">
-              <div class="flow-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-              </div>
-              <strong style="font-size:12px; color:var(--accent);">4. SARIF Limpo</strong>
-              <span style="font-size:10px; color:var(--text-3);">Zero Ruídos</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bento-card bento-col-4">
-          <span class="bento-badge-tag">Zero Cloud Leak</span>
-          <h3 class="bento-card-title">100% Soberania Local</h3>
-          <p class="bento-card-desc">Execute com Ollama e modelos Llama 3/Qwen. O código do seu software proprietário nunca sai do ambiente local nem trafega para servidores de terceiros.</p>
-          <div style="background:rgba(8,11,16,0.8); border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:20px; font-family:var(--mono); font-size:12px;">
-            <div style="display:flex; align-items:center; gap:8px; color:var(--accent); margin-bottom:6px;">
-              <span style="width:7px; height:7px; border-radius:50%; background:var(--accent);"></span>
-              <span>localhost:11434 (Ollama)</span>
-            </div>
-            <div style="color:var(--text-3); font-size:11px;">Isolamento auditado · Sem telemetria</div>
-          </div>
-        </div>
-
-        <div class="bento-card bento-col-6">
-          <span class="bento-badge-tag">Validação Científica (TCC)</span>
-          <h3 class="bento-card-title">Precisão Comprovada em Benchmarks</h3>
-          <p class="bento-card-desc">Resultados de experimentos controlados comparando o motor tradicional com a abordagem semântica do CypherGuard:</p>
-
-          <div class="benchmark-bars-box">
-            <div class="bench-row">
-              <div class="bench-label-row">
-                <span class="bench-name">Precisão Geral (CypherGuard AI)</span>
-                <span class="bench-pct">94.2%</span>
-              </div>
-              <div class="bench-track"><div class="bench-fill" style="width: 94.2%;"></div></div>
-            </div>
-
-            <div class="bench-row">
-              <div class="bench-label-row">
-                <span class="bench-name">Precisão SAST Convencional</span>
-                <span style="color:var(--text-3); font-family:var(--mono); font-size:12px;">52.8%</span>
-              </div>
-              <div class="bench-track"><div class="bench-fill dim" style="width: 52.8%;"></div></div>
-            </div>
-
-            <div class="bench-row">
-              <div class="bench-label-row">
-                <span class="bench-name">Redução Efetiva de Falsos Positivos</span>
-                <span class="bench-pct">-78.6%</span>
-              </div>
-              <div class="bench-track"><div class="bench-fill" style="width: 78.6%;"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bento-card bento-col-6">
-          <span class="bento-badge-tag">Correção Inteligente</span>
-          <h3 class="bento-card-title">Patcher com Confiança Calibrada</h3>
-          <p class="bento-card-desc">Não entregue apenas relatórios. O CypherGuard gera patches unified diff prontos para merge, com backup de segurança automático (`.bak`).</p>
-          <div style="background:rgba(8,11,16,0.8); border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:20px; font-family:var(--mono); font-size:12px; color:var(--text-3);">
-            <div style="color:var(--accent); margin-bottom:4px;">$ cypherguard apply --patch-id=sqli-01</div>
-            <div>[Patcher] Backup gerado em auth.py.bak</div>
-            <div style="color:var(--text-1);">[Patcher] 3 linhas modificadas com sucesso. Testes intactos.</div>
           </div>
         </div>
       </div>
+
+      <!-- Col 4: Zero Cloud Leak -->
+      <div class="bento-item col-4">
+        <div class="bezel-shell">
+          <div class="bezel-core" style="display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
+            <span class="bento-badge-tag" style="background: rgba(255,255,255,0.1); color: var(--text-1); border-color: var(--border-hi);">Privacidade</span>
+            <div class="bento-content">
+              <h3 class="bento-title">Zero Cloud Leak</h3>
+              <p class="bento-desc">O código da sua empresa não trafega na internet. Integração nativa via Ollama no seu localhost.</p>
+              <div style="background:var(--void); border:1px solid var(--border); padding:16px; border-radius:var(--radius-s); margin-top:24px; font-family:var(--mono); font-size:12px;">
+                <div style="color:var(--accent); display:flex; align-items:center; gap:8px;">
+                  <span class="dot-live"></span> localhost:11434
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 6: Accuracy -->
+      <div class="bento-item col-6">
+        <div class="bezel-shell">
+          <div class="bezel-core">
+            <span class="bento-badge-tag">Validação Científica</span>
+            <div class="bento-content">
+              <h3 class="bento-title">Precisão em Benchmarks</h3>
+              <p class="bento-desc">Redução drástica da fadiga de alertas comparado a analisadores tradicionais.</p>
+              
+              <div style="margin-top: 24px; display:flex; flex-direction:column; gap:16px;">
+                <!-- Bar 1 -->
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; margin-bottom:6px;">
+                    <span style="color:var(--text-1);">Precisão CypherGuard</span>
+                    <span style="color:var(--accent); font-weight:700;">94.2%</span>
+                  </div>
+                  <div style="height:4px; background:var(--void); border-radius:2px; overflow:hidden;">
+                    <div style="height:100%; width:94.2%; background:var(--accent);"></div>
+                  </div>
+                </div>
+                <!-- Bar 2 -->
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; margin-bottom:6px;">
+                    <span style="color:var(--text-3);">SAST Convencional</span>
+                    <span style="color:var(--text-3); font-weight:700;">52.8%</span>
+                  </div>
+                  <div style="height:4px; background:var(--void); border-radius:2px; overflow:hidden;">
+                    <div style="height:100%; width:52.8%; background:var(--text-muted);"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 6: Patcher -->
+      <div class="bento-item col-6">
+        <div class="bezel-shell">
+          <div class="bezel-core" style="height:100%; display:flex; flex-direction:column;">
+            <span class="bento-badge-tag">Auto-Fix</span>
+            <div class="bento-content">
+              <h3 class="bento-title">Patcher Confiável</h3>
+              <p class="bento-desc">Gera diffs unificados e backups automáticos (.bak) antes da aplicação das correções sugeridas pela IA.</p>
+              
+              <div style="background:var(--void); border:1px solid var(--border); padding:16px; border-radius:var(--radius-s); margin-top:24px; font-family:var(--mono); font-size:12px; color:var(--text-3);">
+                <div style="color:var(--accent); margin-bottom:4px;">❯ cypherguard apply --patch-id=sqli-01</div>
+                <div>[Patcher] Backup gerado em auth.py.bak</div>
+                <div style="color:var(--text-1);">[Patcher] 3 linhas modificadas com sucesso. Testes intactos.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 </div>
 
-<!-- =================== APP DASHBOARD =================== -->
+<!-- =================== APP DASHBOARD (OPERATE) =================== -->
 <div id="page-app" class="app-shell hidden">
-  <div class="app-page">
-    <aside class="sidebar">
-      <div class="sb-brand" onclick="goToLanding()">
-        <div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
-        <div><div style="font-family:var(--mono);font-weight:700;font-size:13.5px;">CypherGuard</div>
-        <div style="font-size:10.5px;color:var(--text-3);">AI Security Audit</div></div>
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+      <div class="nav-brand" style="cursor:pointer;" onclick="goToLanding()">
+        <i class="ph-light ph-shield-check" style="font-size:24px;"></i>
+        CypherGuard
       </div>
-      <nav class="sb-nav">
-        <div class="sb-item active" data-tab="scan" onclick="switchTab('scan')"><span class="ic">▶</span><span class="lbl">Scan</span><span class="kbd">1</span></div>
-        <div class="sb-item" data-tab="history" onclick="switchTab('history')"><span class="ic">▤</span><span class="lbl">Histórico</span><span class="kbd">2</span></div>
-        <div class="sb-item" data-tab="access" onclick="switchTab('access')"><span class="ic" style="display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span><span class="lbl">Controle de Acesso</span><span class="kbd">3</span></div>
-        <div class="sb-item" data-tab="settings" onclick="switchTab('settings')"><span class="ic" style="display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span><span class="lbl">Configurações</span><span class="kbd">4</span></div>
+
+      <nav class="sb-menu">
+        <div class="sb-item active" data-tab="scan" onclick="switchTab('scan')">
+          <i class="ph-light ph-scan ic"></i> Scan Ativo
+        </div>
+        <div class="sb-item" data-tab="history" onclick="switchTab('history')">
+          <i class="ph-light ph-clock-counter-clockwise ic"></i> Histórico
+        </div>
+        <div class="sb-item" data-tab="access" onclick="switchTab('access')">
+          <i class="ph-light ph-users ic"></i> Controle de Acesso
+        </div>
+        <div class="sb-item" data-tab="settings" onclick="switchTab('settings')">
+          <i class="ph-light ph-gear ic"></i> Configurações
+        </div>
       </nav>
+
       <div class="sb-foot">
-        <div class="sb-user-card" id="sbUserCard">
-          <div class="sb-user-info" onclick="openLoginModal()" style="cursor:pointer;" title="Clique para alternar perfil">
-            <div class="sb-user-name" id="sbUserName">admin</div>
-            <span class="badge-role badge-admin" id="sbUserBadge">ADMIN</span>
+        <div class="sb-user-card" onclick="openLoginModal()" style="cursor:pointer;" title="Trocar de Perfil">
+          <div>
+            <div style="font-family:var(--mono); font-size:12px; font-weight:700; color:var(--text-1);" id="sbUserName">admin</div>
+            <div style="font-size:11px; color:var(--text-3);" id="sbUserBadge">Administrador</div>
           </div>
-          <button class="sb-logout-btn" onclick="logout()" title="Encerrar Sessão">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <button class="btn-outline" style="padding:4px; border-radius:var(--radius-s);" onclick="logout(); event.stopPropagation();" title="Sair">
+            <i class="ph-light ph-sign-out"></i>
           </button>
         </div>
-        <div class="sb-status"><span class="dot-live" id="statusDot"></span><span class="lbl" id="statusText">Carregando...</span></div>
       </div>
     </aside>
 
-    <main class="main">
-      <!-- SCAN TAB -->
-      <section class="tab-panel active" id="tab-scan">
-        <div class="main-head">
-          <div>
-            <h1>Auditoria Ativa</h1>
-            <p>Aponte um diretório ou arquivo. O Semgrep localiza candidatos; a IA confirma quais são reais.</p>
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-header">
+        <div class="pill">
+          <span class="dot-live" id="statusDot"></span>
+          <span id="statusText" style="color:var(--text-2);">Motor Local: Pronto</span>
+        </div>
+      </header>
+
+      <div class="app-content">
+        <!-- SCAN TAB -->
+        <section class="tab-panel active" id="tab-scan">
+          <h1 class="page-title">Auditoria Ativa</h1>
+          <p class="page-desc">Inicie a varredura semântica em diretórios ou arquivos individuais. A análise rodará localmente.</p>
+
+          <div id="auditorWarning" class="readonly-banner hidden">
+            <i class="ph-light ph-warning-circle" style="font-size:20px;"></i>
+            <span><strong>Modo Auditor (Somente Leitura):</strong> Privilégios insuficientes para iniciar scans novos. Mude para Analista ou Admin.</span>
           </div>
-          <div class="pill"><span class="dot-live"></span>Motor pronto</div>
-        </div>
 
-        <div id="auditorWarning" class="readonly-banner hidden">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          <div><strong>Modo Auditor (Somente Leitura):</strong> Seu perfil possui privilégios de consulta. Execuções de novos scans e aplicação de patches estão restritas a Analistas e Administradores.</div>
-        </div>
-
-        <div class="scan-box solid-panel">
-          <div class="scan-row">
+          <div class="scan-bar">
             <div class="path-input-wrap">
               <span class="ic">❯</span>
-              <input id="pathInput" type="text" value="./src/api" placeholder="/caminho/do/projeto ou arquivo.py">
+              <input id="pathInput" type="text" value="./src/api" placeholder="/caminho/do/projeto">
             </div>
-            <button class="run-btn" id="runBtn" onclick="runScan()">▶&nbsp; Executar Auditoria</button>
+            <button class="btn-run" id="runBtn" onclick="runScan()">
+              <i class="ph-light ph-play"></i> Iniciar Scan
+            </button>
           </div>
-          <div class="scan-flags">
-            <span class="flag">⌁ Local-first</span>
-            <span class="flag">◈ Semgrep + AST</span>
-            <span class="flag">✓ Validação semântica</span>
-          </div>
-        </div>
 
-        <div class="loading-state solid-panel" id="loadingState" style="padding:26px 30px;">
-          <div class="load-step" id="step1">
+          <div class="loading-state hidden" id="loadingState">
             <div class="spinner"></div>
-            <div><div class="txt">Analisando com Semgrep…</div><div class="sub">Percorrendo AST e regras estáticas...</div></div>
-          </div>
-          <div class="load-step" id="step2">
-            <div class="spinner"></div>
-            <div><div class="txt">A IA está validando os resultados…</div><div class="sub">Avaliando contexto semântico dos candidatos...</div></div>
-          </div>
-        </div>
-
-        <div class="results-wrap" id="resultsWrap">
-          <div class="results-head">
-            <h3 id="resultsTitle">0 alertas analisados</h3>
-            <div class="results-summary" id="resultsSummary">
+            <div style="font-family:var(--mono); font-size:13px; color:var(--text-1); text-align:center;">
+              <div>Analisando AST e inferindo contexto...</div>
+              <div style="color:var(--text-3); font-size:11px; margin-top:4px;">Isso pode levar alguns segundos dependendo do modelo.</div>
             </div>
           </div>
-          <div id="cardsContainer"></div>
-        </div>
 
-        <div class="empty-state" id="emptyState">
-          <div class="ic">◈</div>
-          <h4>Nenhuma auditoria em execução</h4>
-          <p>Informe um caminho acima e clique em "Executar Auditoria" para iniciar a análise híbrida.</p>
-        </div>
-      </section>
-
-      <!-- HISTORY TAB -->
-      <section class="tab-panel" id="tab-history">
-        <div class="main-head">
-          <div><h1>Histórico de Auditorias</h1><p>Relatórios consolidados de execuções anteriores com inspeção completa.</p></div>
-          <div class="pill" id="histCount">0 execuções registradas</div>
-        </div>
-
-        <!-- KPI Metrics Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-lbl">Auditorias Realizadas</div>
-            <div class="kpi-val" id="kpiTotalScans">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-lbl">Vulnerabilidades Identificadas</div>
-            <div class="kpi-val" id="kpiTotalAlerts">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-lbl">Modelos Empregados</div>
-            <div class="kpi-val" id="kpiUniqueModels">0</div>
-          </div>
-        </div>
-
-        <div class="hist-table-wrap solid-panel">
-          <table style="table-layout: fixed;">
-            <thead>
-              <tr>
-                <th style="width: 18%;">ID do Scan</th>
-                <th style="width: 25%;">Data / Hora</th>
-                <th style="width: 20%;">Alvo / Modelo</th>
-                <th style="width: 15%; text-align:center;">Alertas</th>
-                <th style="width: 22%; text-align:center;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="histBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ACCESS CONTROL & AUDIT TAB -->
-      <section class="tab-panel" id="tab-access">
-        <div class="main-head">
-          <div>
-            <h1>Controle de Acesso & Auditoria</h1>
-            <p>Gerenciamento de Perfis (RBAC), credenciais locais e trilha de auditoria do sistema.</p>
-          </div>
-          <button class="btn-primary" style="padding: 8px 18px; font-size: 12.5px;" onclick="openLoginModal()">Alternar Perfil</button>
-        </div>
-
-        <!-- RBAC Matrix Card (Academic Value for Thesis) -->
-        <div class="set-card solid-panel" style="margin-bottom: 24px;">
-          <h3 style="font-family: var(--mono); font-size: 14px; margin-bottom: 8px; font-weight:600;">Matriz de Controle de Acesso Baseado em Funções (RBAC)</h3>
-          <p style="font-size: 12.5px; color: var(--text-2); margin-bottom: 16px;">Privilégios e permissões por perfil em conformidade com o princípio do menor privilégio (*Least Privilege*):</p>
-          <div style="overflow-x:auto;">
-            <table class="rbac-table" style="width:100%; border-collapse: collapse;">
-              <thead>
-                <tr style="border-bottom: 1px solid var(--border-hi); font-family: var(--mono); font-size: 11.5px; color: var(--text-3);">
-                  <th style="padding: 10px 12px;">Operação / Módulo</th>
-                  <th style="text-align:center; padding: 10px 12px;"><span class="badge-role badge-admin">ADMINISTRADOR</span></th>
-                  <th style="text-align:center; padding: 10px 12px;"><span class="badge-role badge-analyst">ANALISTA</span></th>
-                  <th style="text-align:center; padding: 10px 12px;"><span class="badge-role badge-auditor">AUDITOR</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 10px 12px;">Executar Auditorias de Código (SAST + SCA)</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--danger); font-weight:700;">✗ Bloqueado</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 10px 12px;">Aplicar Correções Automáticas via IA (Patcher)</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--danger); font-weight:700;">✗ Bloqueado</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 10px 12px;">Visualizar Histórico e Exportar Relatórios SARIF</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 10px 12px;">Configurar Provedores de IA (Ollama / Cloud)</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Permitido</td>
-                  <td style="text-align:center; color:var(--danger); font-weight:700;">✗ Bloqueado</td>
-                  <td style="text-align:center; color:var(--danger); font-weight:700;">✗ Bloqueado</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px 12px;">Gerenciar Usuários e Excluir Histórico</td>
-                  <td style="text-align:center; color:var(--safe); font-weight:700;">✓ Total</td>
-                  <td style="text-align:center; color:var(--danger); font-weight:700;">✗ Bloqueado</td>
-                  <td style="text-align:center; color:var(--low); font-weight:700;">Leitura</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Users & Audit Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="access-grid">
-          <!-- User Management Card -->
-          <div class="set-card solid-panel">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-              <h3 style="font-family: var(--mono); font-size: 13.5px; font-weight:600;">Usuários Cadastrados</h3>
-              <span class="pill" id="userCount">Carregando...</span>
+          <div class="results-wrap" id="resultsWrap">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
+              <h3 style="font-family:var(--display); font-size: 20px;" id="resultsTitle">0 alertas analisados</h3>
+              <div id="resultsSummary" style="display:flex; gap:8px;"></div>
             </div>
-            <div style="overflow-x:auto;">
-              <table style="width:100%; font-size:12px; border-collapse:collapse;">
-                <thead>
-                  <tr style="border-bottom: 1px solid var(--border-hi); color:var(--text-3); font-family:var(--mono);">
-                    <th style="padding:8px 10px; text-align:left;">Usuário</th>
-                    <th style="padding:8px 10px; text-align:left;">Nome</th>
-                    <th style="padding:8px 10px; text-align:left;">Perfil</th>
-                    <th style="padding:8px 10px; text-align:left;">Último Acesso</th>
-                  </tr>
-                </thead>
-                <tbody id="userListBody"></tbody>
-              </table>
-            </div>
+            <div id="cardsContainer"></div>
+          </div>
 
-            <!-- Create User Form (Admin only) -->
-            <div id="createUserFormWrap" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-              <h4 style="font-size:12px; font-family:var(--mono); margin-bottom:10px; color:var(--text-2);">+ Cadastrar Novo Usuário</h4>
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <input type="text" id="newUsername" placeholder="Usuário (ex: carla_sec)" style="background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:8px 12px; font-size:12px; color:var(--text-1);">
-                <input type="text" id="newName" placeholder="Nome Completo (ex: Carla Mendes)" style="background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:8px 12px; font-size:12px; color:var(--text-1);">
-                <div style="display:flex; gap:8px;">
-                  <input type="password" id="newPassword" placeholder="Senha" style="flex:1; background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:8px 12px; font-size:12px; color:var(--text-1);">
-                  <select id="newRole" style="background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:8px 12px; font-size:12px; color:var(--text-1);">
-                    <option value="analyst">Analista</option>
-                    <option value="auditor">Auditor</option>
-                    <option value="admin">Administrador</option>
-                  </select>
+          <div class="empty-state" id="emptyState">
+            <i class="ph-light ph-scan" style="font-size:48px; color:var(--border-hi);"></i>
+            <h4>Aguardando Alvo</h4>
+            <p>Insira um caminho válido e dispare a varredura híbrida.</p>
+          </div>
+        </section>
+
+        <!-- HISTORY TAB -->
+        <section class="tab-panel" id="tab-history">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h1 class="page-title">Histórico e Relatórios</h1>
+              <p class="page-desc">Inspeção detalhada de execuções passadas.</p>
+            </div>
+            <div class="pill" id="histCount" style="color:var(--accent); border-color:var(--accent-border); background:var(--accent-bg);">0 registros</div>
+          </div>
+
+          <!-- KPI Metrics -->
+          <div class="kpi-grid">
+            <div class="bezel-shell sm"><div class="bezel-core kpi-card">
+              <span class="kpi-lbl">Total Scans</span>
+              <span class="kpi-val" id="kpiTotalScans">0</span>
+            </div></div>
+            <div class="bezel-shell sm"><div class="bezel-core kpi-card">
+              <span class="kpi-lbl">Vulnerabilidades Reais</span>
+              <span class="kpi-val" id="kpiTotalAlerts">0</span>
+            </div></div>
+            <div class="bezel-shell sm"><div class="bezel-core kpi-card">
+              <span class="kpi-lbl">Falsos Positivos Descartados</span>
+              <span class="kpi-val" style="color:var(--safe);">--</span>
+            </div></div>
+          </div>
+
+          <div class="bezel-shell sm" style="padding:0;">
+            <div class="bezel-core" style="padding:0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 20%;">Scan ID</th>
+                      <th style="width: 25%;">Timestamp</th>
+                      <th style="width: 25%;">Alvo</th>
+                      <th style="width: 15%;">Alertas</th>
+                      <th style="width: 15%; text-align:right;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="histBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACCESS TAB -->
+        <section class="tab-panel" id="tab-access">
+          <h1 class="page-title">Controle de Acesso (RBAC)</h1>
+          <p class="page-desc">Matriz de privilégios estritos e auditoria do sistema de usuários.</p>
+
+          <div class="bezel-shell sm" style="margin-bottom:32px;">
+            <div class="bezel-core" style="padding: 24px;">
+              <h3 style="font-family:var(--display); font-size:18px; margin-bottom:16px;">Matriz de Privilégios</h3>
+              <div class="data-table-wrap">
+                <table class="data-table rbac-table">
+                  <thead>
+                    <tr>
+                      <th>Operação</th>
+                      <th>Admin</th>
+                      <th>Analista</th>
+                      <th>Auditor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="color:var(--text-1);">Executar Scans</td>
+                      <td><span class="badge badge-admin">✓ Sim</span></td>
+                      <td><span class="badge badge-analyst">✓ Sim</span></td>
+                      <td><span class="badge badge-auditor">Bloqueado</span></td>
+                    </tr>
+                    <tr>
+                      <td style="color:var(--text-1);">Aplicar Correções (Patcher)</td>
+                      <td><span class="badge badge-admin">✓ Sim</span></td>
+                      <td><span class="badge badge-analyst">✓ Sim</span></td>
+                      <td><span class="badge badge-auditor">Bloqueado</span></td>
+                    </tr>
+                    <tr>
+                      <td style="color:var(--text-1);">Ver Histórico (SARIF)</td>
+                      <td><span class="badge badge-admin">✓ Sim</span></td>
+                      <td><span class="badge badge-analyst">✓ Sim</span></td>
+                      <td><span class="badge badge-analyst" style="background:transparent; color:var(--text-1); border-color:var(--border-hi);">✓ Sim</span></td>
+                    </tr>
+                    <tr>
+                      <td style="color:var(--text-1);">Configurar Provedor de IA</td>
+                      <td><span class="badge badge-admin">✓ Sim</span></td>
+                      <td><span class="badge badge-auditor">Bloqueado</span></td>
+                      <td><span class="badge badge-auditor">Bloqueado</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+            <div class="bezel-shell sm">
+              <div class="bezel-core" style="padding:24px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                  <h3 style="font-family:var(--display); font-size:18px;">Usuários</h3>
+                  <span class="pill" id="userCount">Carregando...</span>
                 </div>
-                <button class="btn-primary" style="padding:8px 14px; font-size:12px; align-self:flex-start; margin-top:4px;" onclick="submitNewUser()">Criar Usuário</button>
-              </div>
-            </div>
-          </div>
+                <div class="data-table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr><th>Usuário</th><th>Perfil</th></tr>
+                    </thead>
+                    <tbody id="userListBody"></tbody>
+                  </table>
+                </div>
 
-          <!-- Audit Log Card -->
-          <div class="set-card solid-panel">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-              <h3 style="font-family: var(--mono); font-size: 13.5px; font-weight:600;">Trilha de Auditoria (Audit Log)</h3>
-              <button class="btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="loadAuditLogs()">↻ Atualizar</button>
-            </div>
-            <div style="max-height: 380px; overflow-y: auto;">
-              <table style="width:100%; font-size:12px; border-collapse:collapse;" class="audit-table">
-                <thead>
-                  <tr style="border-bottom: 1px solid var(--border-hi); color:var(--text-3); font-family:var(--mono);">
-                    <th style="padding:8px 10px; text-align:left;">Data/Hora</th>
-                    <th style="padding:8px 10px; text-align:left;">Usuário</th>
-                    <th style="padding:8px 10px; text-align:left;">Ação</th>
-                    <th style="padding:8px 10px; text-align:left;">Detalhes</th>
-                  </tr>
-                </thead>
-                <tbody id="auditListBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SETTINGS TAB -->
-      <section class="tab-panel" id="tab-settings">
-        <div class="main-head"><div><h1>Configurações</h1><p>Escolha onde a validação semântica é executada.</p></div></div>
-        
-        <div id="settingsRoleWarning" class="readonly-banner hidden">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <div><strong>Acesso Restrito:</strong> Apenas usuários com perfil <strong>Administrador</strong> podem alterar configurações e credenciais de IA.</div>
-        </div>
-
-        <div class="settings-wrap">
-          <div class="set-card solid-panel">
-            <div class="field">
-              <label>Provedor de IA</label>
-              <div class="select-wrap">
-                <select id="providerSelect" onchange="onProviderChange()">
-                  <option value="ollama">Ollama Local</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="google">Google Gemini</option>
-                </select>
-              </div>
-              <div class="hint" id="providerHint">Inferência 100% local. Nenhum código é enviado para fora da máquina.</div>
-            </div>
-
-            <div class="field">
-              <label>Modelo</label>
-              <div class="select-wrap">
-                <select id="modelSelect" onchange="onModelChange()">
-                  <!-- Injected via app.js -->
-                </select>
+                <div id="createUserFormWrap" style="margin-top:24px; border-top:1px solid var(--border); padding-top:24px;">
+                  <h4 style="font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--text-3); margin-bottom:12px;">+ Novo Usuário</h4>
+                  <div class="form-group"><input type="text" id="newUsername" class="form-input" placeholder="Usuário"></div>
+                  <div class="form-group"><input type="text" id="newName" class="form-input" placeholder="Nome Completo"></div>
+                  <div style="display:flex; gap:12px;">
+                    <input type="password" id="newPassword" class="form-input" placeholder="Senha" style="flex:1;">
+                    <select id="newRole" class="form-input" style="width:140px;">
+                      <option value="analyst">Analista</option>
+                      <option value="auditor">Auditor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <button class="btn-outline" style="margin-top:16px;" onclick="submitNewUser()">Cadastrar</button>
+                </div>
               </div>
             </div>
 
-            <div class="save-row">
-              <button class="btn-save" id="btnSaveSettings" onclick="saveSettings()">Salvar Configurações</button>
-              <span class="save-msg" id="saveMsg">✓ Configurações salvas</span>
+            <div class="bezel-shell sm">
+              <div class="bezel-core" style="padding:24px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                  <h3 style="font-family:var(--display); font-size:18px;">Trilha de Auditoria</h3>
+                  <button class="btn-outline" style="padding: 4px 12px;" onclick="loadAuditLogs()"><i class="ph-light ph-arrows-clockwise"></i></button>
+                </div>
+                <div style="max-height: 400px; overflow-y:auto; padding-right:8px;">
+                  <table class="data-table">
+                    <thead>
+                      <tr><th>Hora</th><th>Usuário</th><th>Ação</th></tr>
+                    </thead>
+                    <tbody id="auditListBody"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div class="set-card solid-panel" style="margin-top: 24px;">
-             <h3 style="font-family: var(--mono); font-size: 14.5px; margin-bottom: 12px; font-weight: 600;">Privacidade vs. Inteligência</h3>
-             
-             <div class="pill" style="display:inline-flex; background: var(--warn-bg); color: var(--warn); border-color: var(--warn); margin-bottom: 14px;">
-               Aviso: Provedores Cloud quebram a política Local-First
-             </div>
-             
-             <p style="font-size: 13px; color: var(--text-2); line-height: 1.6; margin-bottom: 16px;">
-               O <strong>CypherGuard AI</strong> foi desenhado primariamente para rodar offline. Utilizar o <strong>Ollama</strong> garante que a análise do código fonte ocorra 100% dentro do seu próprio hardware, assegurando sigilo absoluto. Ao selecionar modelos em nuvem (<strong>OpenAI</strong> ou <strong>Google Gemini</strong>), os trechos do seu código rotulados como candidatos a vulnerabilidade serão enviados via rede para APIs externas. Recomenda-se cautela ao analisar códigos corporativos sob NDA.
-             </p>
-             
-             <div id="benchmarkInfo">
-               <!-- Preenchido via app.js de acordo com o modelo -->
-             </div>
+        </section>
+
+        <!-- SETTINGS TAB -->
+        <section class="tab-panel" id="tab-settings">
+          <h1 class="page-title">Configurações de Inferência</h1>
+          <p class="page-desc">Defina as credenciais e parâmetros do LLM local ou provedores Cloud.</p>
+
+          <div id="settingsRoleWarning" class="readonly-banner hidden">
+            <i class="ph-light ph-warning-circle" style="font-size:20px;"></i>
+            <span><strong>Acesso Restrito:</strong> Apenas Administradores podem alterar os provedores de inteligência artificial.</span>
           </div>
-        </div>
-      </section>
+
+          <div class="bezel-shell sm">
+            <div class="bezel-core" style="padding:32px;">
+              
+              <div style="display:flex; gap:32px; flex-wrap:wrap;">
+                <div style="flex:1; min-width: 250px;">
+                  <div class="form-group">
+                    <label>Provedor de IA</label>
+                    <select id="providerSelect" class="form-input" onchange="onProviderChange()">
+                      <option value="ollama">Ollama (Local-First)</option>
+                      <option value="openai">OpenAI (Cloud)</option>
+                      <option value="google">Google Gemini (Cloud)</option>
+                    </select>
+                    <div style="font-size:12px; color:var(--text-3); margin-top:8px;" id="providerHint">Inferência 100% isolada no hardware.</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Modelo Específico</label>
+                    <select id="modelSelect" class="form-input" onchange="onModelChange()">
+                      <!-- Injected via app.js -->
+                    </select>
+                  </div>
+                  
+                  <div style="display:flex; align-items:center; gap:16px; margin-top:32px;">
+                    <button class="btn-accent" id="btnSaveSettings" onclick="saveSettings()">Salvar Opções</button>
+                    <span id="saveMsg" style="color:var(--accent); font-family:var(--mono); font-size:12px; opacity:0; transition:opacity var(--transition-fast);">✓ Configurações Aplicadas</span>
+                  </div>
+                </div>
+
+                <div style="flex:1; min-width: 250px;">
+                  <div style="background:var(--void); border:1px solid var(--border); border-radius:var(--radius-s); padding:24px;">
+                    <h4 style="font-family:var(--display); font-size:16px; margin-bottom:12px;">Compromisso de Sigilo</h4>
+                    <p style="font-size:13px; color:var(--text-2); margin-bottom:16px;">
+                      O CypherGuard assume por padrão o modelo **Local-First**. Ao ativar um provedor Cloud, a AST analisada trafegará via rede para APIs de terceiros.
+                    </p>
+                    <div id="benchmarkInfo" style="font-family:var(--mono); font-size:11px; color:var(--text-3);">
+                      <!-- Preenchido via app.js -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
     </main>
   </div>
 </div>
 
-    <!-- LOGIN MODAL -->
-    <div id="loginModal" class="auth-modal-overlay hidden">
-      <div class="auth-box solid-panel">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div class="brand-mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
-            <h3 style="font-family:var(--mono); font-size:15px; font-weight:700;">Autenticação CypherGuard</h3>
-          </div>
-          <button onclick="closeLoginModal()" style="color:var(--text-3); font-size:18px;">✕</button>
-        </div>
-        <p style="font-size:12.5px; color:var(--text-3); margin-bottom:16px;">Controle de Acesso Baseado em Perfis (RBAC). Selecione um perfil para demonstração do TCC ou digite suas credenciais.</p>
-
-        <div style="margin-bottom:16px;">
-          <label style="font-size:11px; font-family:var(--mono); color:var(--text-3); text-transform:uppercase;">Acesso Rápido para Demonstração (TCC):</label>
-          <div class="auth-presets">
-            <button type="button" class="preset-btn" onclick="fillLoginPreset('admin', 'admin123')">Admin</button>
-            <button type="button" class="preset-btn" onclick="fillLoginPreset('analista', 'analista123')">Analista</button>
-            <button type="button" class="preset-btn" onclick="fillLoginPreset('auditor', 'auditor123')">Auditor</button>
-          </div>
-        </div>
-
-        <form onsubmit="handleLoginSubmit(event)" style="display:flex; flex-direction:column; gap:12px;">
-          <div>
-            <label style="display:block; font-size:11.5px; font-family:var(--mono); color:var(--text-2); margin-bottom:4px;">Nome de Usuário</label>
-            <input id="loginUsername" type="text" required placeholder="admin" style="width:100%; background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:10px 14px; font-size:13px; color:var(--text-1);">
-          </div>
-          <div>
-            <label style="display:block; font-size:11.5px; font-family:var(--mono); color:var(--text-2); margin-bottom:4px;">Senha</label>
-            <input id="loginPassword" type="password" required placeholder="••••••••" style="width:100%; background:var(--void); border:1px solid var(--border-hi); border-radius:var(--radius-s); padding:10px 14px; font-size:13px; color:var(--text-1);">
-          </div>
-          <div id="loginErrorMsg" style="font-size:12px; color:var(--danger); min-height:16px;"></div>
-          <button type="submit" class="btn-primary" style="padding:11px 0; justify-content:center; width:100%; margin-top:4px;">Entrar no Sistema</button>
-        </form>
+<!-- =================== LOGIN MODAL =================== -->
+<div id="loginModal" class="modal-overlay hidden">
+  <div class="bezel-shell modal-content">
+    <div class="bezel-core">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h3 style="font-family:var(--display); font-size:20px; color:var(--text-1);">Acesso RBAC</h3>
+        <button onclick="closeLoginModal()" style="font-size:20px; color:var(--text-3);"><i class="ph-light ph-x"></i></button>
       </div>
+
+      <p style="font-size:13px; color:var(--text-2); margin-bottom:24px;">Acesso ao dashboard corporativo.</p>
+
+      <div style="margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:24px;">
+        <label style="font-family:var(--mono); font-size:11px; color:var(--text-3); margin-bottom:12px; display:block;">PRESETS DE TESTE:</label>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('admin', 'admin123')">Admin</button>
+          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('analista', 'analista123')">Analista</button>
+          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('auditor', 'auditor123')">Auditor</button>
+        </div>
+      </div>
+
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label>Usuário</label>
+          <input id="loginUsername" type="text" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input id="loginPassword" type="password" class="form-input" required>
+        </div>
+        <div id="loginErrorMsg" style="color:var(--danger); font-size:12px; margin-bottom:16px; min-height:16px;"></div>
+        <button type="submit" class="btn-primary" style="width:100%; height:48px;">Entrar</button>
+      </form>
     </div>
+  </div>
+</div>
 
-    <!-- Toast Notifications -->
-    <div class="toast" id="toast"></div>
+<!-- DETAILS MODAL -->
+<dialog id="detailsModal" class="bezel-shell" style="background:transparent; border:none; margin: auto; padding:0; width:90%; max-width:600px;">
+  <div class="bezel-core">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
+      <h3 id="modalTitle" style="font-family:var(--display); font-size:18px;">Detalhes</h3>
+      <button onclick="document.getElementById('detailsModal').close()" style="color:var(--text-3); font-size:20px;"><i class="ph-light ph-x"></i></button>
+    </div>
+    <div id="modalBody" style="font-size:13px; color:var(--text-2); max-height:60vh; overflow-y:auto; line-height:1.6;"></div>
+  </div>
+</dialog>
 
-    <!-- Details Modal -->
-    <dialog id="detailsModal" class="solid-panel" style="background: var(--surface-1); border: 1px solid var(--border-hi); border-radius: 12px; color: var(--text-1); max-width: 600px; width: 90%; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-lo); padding-bottom: 12px; margin-bottom: 16px;">
-        <h3 id="modalTitle" style="margin: 0; font-size: 16px; font-weight: 500;">Detalhes</h3>
-        <button onclick="document.getElementById('detailsModal').close()" style="background: transparent; border: none; color: var(--text-2); cursor: pointer; font-size: 18px;">✕</button>
-      </div>
-      <div id="modalBody" style="font-size: 13.5px; color: var(--text-2); line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
-    </dialog>
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
-    <script src="app.js"></script>
-  </body>
+<!-- JS -->
+<script>
+  // Simple local tab script for the playground in hero right side
+  function switchPlaygroundTab(tabId) {
+    document.querySelectorAll('.pg-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.play-view').forEach(view => view.classList.remove('active'));
+    
+    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    document.getElementById(`view-${tabId}`).classList.add('active');
+  }
+</script>
+<script src="app.js"></script>
+</body>
 </html>
