@@ -959,6 +959,77 @@ select.form-input option {
 .badge-analyst { color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent-border); }
 .badge-auditor { color: var(--text-3); }
 
+/* History Table */
+.hist-table { width: 100%; border-collapse: collapse; }
+.hist-table thead th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.hist-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background var(--transition-fast);
+}
+.hist-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.03);
+}
+.hist-table tbody td { padding: 13px 16px; vertical-align: middle; }
+
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-count.high { background: rgba(239,68,68,0.12); color: #EF4444; border: 1px solid rgba(239,68,68,0.25); }
+.badge-count.medium { background: rgba(245,158,11,0.12); color: #F59E0B; border: 1px solid rgba(245,158,11,0.25); }
+.badge-count.low { background: rgba(56,189,248,0.1); color: var(--accent); border: 1px solid var(--accent-border); }
+.badge-count.zero { background: transparent; color: var(--text-3); border: 1px solid var(--border); }
+
+.action-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-shell);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.action-btn-sm:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+.action-btn-sm i { font-size: 13px; }
+
+.action-btn-danger {
+  color: var(--text-3);
+  border-color: rgba(239,68,68,0.2);
+}
+.action-btn-danger:hover {
+  color: #EF4444;
+  border-color: rgba(239,68,68,0.5);
+  background: rgba(239,68,68,0.08);
+}
+
 /* KPI Grid */
 .kpi-grid {
   display: grid;

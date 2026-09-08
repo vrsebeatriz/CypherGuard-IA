@@ -261,25 +261,39 @@ async function fillHistory(){
             const isAdmin = currentUser && currentUser.role === 'admin';
             body.innerHTML = data.map(h => {
                 const shortPath = h.targetPath ? h.targetPath.split('/').slice(-2).join('/') : '-';
+                const n = h.totalAlerts || 0;
+                const badgeClass = n === 0 ? 'zero' : n >= 5 ? 'high' : n >= 2 ? 'medium' : 'low';
+                const model = (h.modelUsed || 'local').replace(':', ' ');
+                const ts = new Date(h.timestamp);
+                const tsDate = ts.toLocaleDateString('pt-BR');
+                const tsTime = ts.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
                 return `
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="font-family:var(--mono); font-size:12px; color:var(--text-1); font-weight:600;">${h.id.substring(0,8)}…</td>
-                    <td style="color:var(--text-2); font-size:12px;">${new Date(h.timestamp).toLocaleString()}</td>
-                    <td style="color:var(--text-3); font-size:11.5px; font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${h.targetPath}">
-                        ${shortPath} <span style="color:var(--text-1);">(${h.modelUsed || 'local'})</span>
+                <tr>
+                    <td>
+                      <span style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.04em;">${h.id.substring(0,8)}</span>
                     </td>
-                    <td class="badge-count" style="text-align:center; font-weight:700; font-family:var(--mono);">${h.totalAlerts}</td>
+                    <td>
+                      <div style="font-size:12px; color:var(--text-1);">${tsDate}</div>
+                      <div style="font-family:var(--mono); font-size:10px; color:var(--text-3);">${tsTime}</div>
+                    </td>
+                    <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${h.targetPath}">
+                      <div style="font-family:var(--mono); font-size:11.5px; color:var(--text-1); overflow:hidden; text-overflow:ellipsis;">${shortPath}</div>
+                      <div style="font-size:10px; color:var(--text-3); margin-top:2px;">${model}</div>
+                    </td>
                     <td style="text-align:center;">
-                        <div style="display:inline-flex; align-items:center; gap:6px;">
-                            <button class="action-btn-sm" title="Reabrir e inspecionar este relatório na interface" onclick="loadScanIntoView('${h.id}')">
-                                Ver
+                      <span class="badge-count ${badgeClass}">${n}</span>
+                    </td>
+                    <td style="text-align:center;">
+                        <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <button class="action-btn-sm" title="Reabrir e inspecionar este relatório" onclick="loadScanIntoView('${h.id}')">
+                                <i class="ph-light ph-eye"></i> Ver
                             </button>
                             <button class="action-btn-sm" title="Baixar relatório SARIF 2.1.0" onclick="downloadSarif('${h.id}')">
-                                SARIF
+                                <i class="ph-light ph-download-simple"></i> SARIF
                             </button>
                             ${isAdmin ? `
-                            <button class="action-btn-sm action-btn-danger" title="Excluir scan (Administrador)" onclick="deleteHistoryScan('${h.id}')">
-                                Excluir
+                            <button class="action-btn-sm action-btn-danger" title="Excluir permanentemente (Admin)" onclick="deleteHistoryScan('${h.id}')">
+                                <i class="ph-light ph-trash"></i>
                             </button>` : ''}
                         </div>
                     </td>
@@ -838,11 +852,11 @@ async function loadAuditLogs() {
       return;
     }
     tbody.innerHTML = logs.map(l => `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding:6px 10px; color:var(--text-3); font-family:var(--mono); white-space:nowrap; font-size:11px;">${new Date(l.timestamp).toLocaleTimeString()}</td>
-        <td style="padding:6px 10px;"><span class="badge-role badge-${l.role}">${l.username}</span></td>
-        <td style="padding:6px 10px; font-weight:600; color:var(--text-1); font-size:12px;">${l.action}</td>
-        <td style="padding:6px 10px; color:var(--text-2); font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${l.details || ''}">${l.details || '-'}</td>
+      <tr class="log-entry">
+        <td style="font-family:var(--mono); font-size:11px; color:var(--text-3);">${new Date(l.timestamp).toLocaleTimeString()}</td>
+        <td><span class="badge-role badge-${l.role}">${l.username}</span></td>
+        <td style="font-weight:600;">${l.action}</td>
+        <td style="color:var(--text-2); font-size:11px;" title="${l.details || ''}">${l.details || '-'}</td>
       </tr>
     `).join('');
   } catch (e) {
