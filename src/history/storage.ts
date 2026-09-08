@@ -60,4 +60,34 @@ export class HistoryStorage {
     }
     return null;
   }
+
+  public deleteEntry(id: string): boolean {
+    const history = this.getHistory();
+    const filtered = history.filter(e => e.id !== id);
+    if (filtered.length === history.length) return false;
+    fs.writeFileSync(historyFile, JSON.stringify(filtered, null, 2), 'utf-8');
+
+    const resultsFile = path.join(dataDir, `scan-${id}.json`);
+    if (fs.existsSync(resultsFile)) {
+      try {
+        fs.unlinkSync(resultsFile);
+      } catch (e) {
+        // ignora se não conseguir deletar o arquivo secundário
+      }
+    }
+    return true;
+  }
+
+  public getStats() {
+    const history = this.getHistory();
+    const totalScans = history.length;
+    const totalAlerts = history.reduce((sum, h) => sum + (h.totalAlerts || 0), 0);
+    const models = Array.from(new Set(history.map(h => h.modelUsed).filter(Boolean)));
+    return {
+      totalScans,
+      totalAlerts,
+      uniqueModels: models.length,
+      lastScan: history[0]?.timestamp || null
+    };
+  }
 }

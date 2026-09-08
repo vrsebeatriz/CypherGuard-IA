@@ -13,6 +13,8 @@ import { UnifiedAlert } from './types';
 import { HistoryStorage, ScanHistoryEntry } from './history/storage';
 import { ConfigLoader } from './config/loader';
 import { SarifGenerator } from './scanner/sarif';
+import { AuthService } from './auth/service';
+import { UserRole } from './auth/types';
 
 export interface CreateAppOptions {
   sessionToken?: string;
@@ -27,13 +29,57 @@ export function createApp(options: CreateAppOptions = {}) {
 
   const sessionToken = options.sessionToken ?? crypto.randomBytes(24).toString('hex');
 
-  function requireSessionToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const provided = req.header('X-CypherGuard-Token') || req.query.token;
-    if (provided !== sessionToken) {
-      return res.status(401).json({ error: 'Token de sessão inválido ou ausente.' });
+  const authService = new AuthService();
+
+  function authenticate(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const authHeader = req.header('Authorization');
+    const customAuthToken = req.header('X-CypherGuard-Auth-Token');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const tokenToTest = bearerToken || customAuthToken;
+
+    if (tokenToTest) {
+      const session = authService.getSession(tokenToTest);
+      if (session) {
+        (req as any).user = {
+          id: session.userId,
+          username: session.username,
+          name: session.name,
+          role: session.role
+        };
+        (req as any).authToken = tokenToTest;
+        return next();
+      }
     }
-    next();
+
+    const provided = req.header('X-CypherGuard-Token') || req.query.token;
+    if (provided && provided === sessionToken) {
+      (req as any).user = {
+        id: 'usr-admin',
+        username: 'admin',
+        name: 'Administrador do Sistema',
+        role: 'admin' as UserRole
+      };
+      return next();
+    }
+
+    return res.status(401).json({ error: 'Token de sessão inválido ou ausente.' });
   }
+
+  function requireRole(...allowedRoles: UserRole[]) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      authenticate(req, res, () => {
+        const user = (req as any).user;
+        if (!user || !allowedRoles.includes(user.role)) {
+          return res.status(403).json({
+            error: 'Acesso negado: seu perfil não tem permissão para realizar esta operação.'
+          });
+        }
+        next();
+      });
+    };
+  }
+
+  const requireSessionToken = authenticate;
 
   function serveIndexWithToken(req: express.Request, res: express.Response) {
     const indexPath = path.join(__dirname, '../public/index.html');
@@ -91,7 +137,68 @@ export function createApp(options: CreateAppOptions = {}) {
   const scaScanner = new SCAScanner();
   const historyStorage = new HistoryStorage();
 
-  app.get('/api/history', requireSessionToken, (req, res) => {
+  // --- ROTAS DE AUTENTICAÇÃO E RBAC ---
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    }
+    const result = authService.login(username, password, req.ip);
+    if (!result) {
+      return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
+    }
+    res.json(result);
+  });
+
+  app.post('/api/auth/logout', authenticate, (req, res) => {
+    const token = (req as any).authToken;
+    if (token) {
+      authService.logout(token);
+    }
+    res.json({ success: true, message: 'Sessão encerrada com sucesso.' });
+  });
+
+  app.get('/api/auth/me', authenticate, (req, res) => {
+    res.json({ user: (req as any).user });
+  });
+
+  app.get('/api/auth/users', requireRole('admin'), (req, res) => {
+    try {
+      res.json(authService.getUsers());
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/auth/users', requireRole('admin'), (req, res) => {
+    try {
+      const { username, name, password, role } = req.body || {};
+      if (!username || !name || !password || !role) {
+        return res.status(400).json({ error: 'Campos username, name, password e role são obrigatórios.' });
+      }
+      if (!['admin', 'analyst', 'auditor'].includes(role)) {
+        return res.status(400).json({ error: 'Perfil inválido. Deve ser admin, analyst ou auditor.' });
+      }
+      const actor = (req as any).user?.username || 'admin';
+      const user = authService.createUser({ username, name, password, role }, actor);
+      res.status(201).json({ user });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // --- TRILHA DE AUDITORIA (AUDIT LOG) ---
+  app.get('/api/audit', requireRole('admin', 'auditor'), (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+      res.json(authService.getAuditLogs(limit));
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --- HISTÓRICO DE SCANS ---
+  app.get('/api/history', authenticate, (req, res) => {
     try {
       const history = historyStorage.getHistory();
       res.json(history);
@@ -100,7 +207,46 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.get('/api/config', requireSessionToken, (req, res) => {
+  app.get('/api/history/stats', authenticate, (req, res) => {
+    try {
+      res.json(historyStorage.getStats());
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/history/:id', authenticate, (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const entry = historyStorage.getEntry(id);
+      if (!entry) {
+        return res.status(404).json({ error: 'Scan não encontrado no histórico.' });
+      }
+      const results = historyStorage.getFullResults(id);
+      res.json({ entry, results: results || [] });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/history/:id', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const ok = historyStorage.deleteEntry(id);
+      if (ok) {
+        const actor = (req as any).user?.username || 'admin';
+        authService.logAudit(actor, 'admin', 'Exclusão de histórico', `Scan ${id} removido`);
+        res.json({ success: true, message: 'Scan removido do histórico.' });
+      } else {
+        res.status(404).json({ error: 'Scan não encontrado.' });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --- CONFIGURAÇÕES ---
+  app.get('/api/config', authenticate, (req, res) => {
     try {
       const fullConfig = ConfigLoader.loadConfig();
       const aiConf = fullConfig.ai || {};
@@ -115,7 +261,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.post('/api/config', requireSessionToken, (req, res) => {
+  app.post('/api/config', requireRole('admin'), (req, res) => {
     try {
       const { model, provider, openaiApiKey, googleApiKey } = req.body;
 
@@ -132,6 +278,8 @@ export function createApp(options: CreateAppOptions = {}) {
 
       aiValidator.updateModel(model, provider, openaiApiKey, googleApiKey);
       ConfigLoader.saveConfig(aiValidator['config']);
+      const actor = (req as any).user?.username || 'admin';
+      authService.logAudit(actor, 'admin', 'Alteração de configurações de IA', `Provedor: ${provider}, Modelo: ${model}`, req.ip);
       res.json({ success: true, model });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -170,7 +318,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.post('/api/scan', requireSessionToken, async (req, res) => {
+  app.post('/api/scan', requireRole('admin', 'analyst'), async (req, res) => {
     const { targetPath } = req.body;
 
     if (!targetPath) {
@@ -264,6 +412,10 @@ export function createApp(options: CreateAppOptions = {}) {
       };
       historyStorage.addEntry(historyEntry, processedAlerts);
 
+      const actor = (req as any).user?.username || 'unknown';
+      const actorRole = (req as any).user?.role || 'analyst';
+      authService.logAudit(actor, actorRole, 'Execução de Scan', `Alvo: ${targetPath} | Alertas: ${processedAlerts.length}`, req.ip);
+
       res.json({ id: scanId, results: processedAlerts, scaStatus: scaOutcome.status });
     } catch (error: any) {
       console.error('Erro durante o scan:', error);
@@ -271,7 +423,7 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
-  app.post('/api/apply', requireSessionToken, (req, res) => {
+  app.post('/api/apply', requireRole('admin', 'analyst'), (req, res) => {
     const { filePath, startLine, endLine, correction } = req.body;
 
     if (!filePath || !startLine || !endLine || !correction) {
@@ -293,6 +445,9 @@ export function createApp(options: CreateAppOptions = {}) {
     const success = Patcher.applyPatch(fullPath, startLine, endLine, correction);
 
     if (success) {
+      const actor = (req as any).user?.username || 'unknown';
+      const actorRole = (req as any).user?.role || 'analyst';
+      authService.logAudit(actor, actorRole, 'Aplicação de Correção', `Arquivo: ${filePath}:${startLine}-${endLine}`, req.ip);
       res.json({ success: true, message: 'Correção aplicada com sucesso!' });
     } else {
       res.status(500).json({ error: 'Falha ao aplicar a correção.' });

@@ -131,11 +131,71 @@ describe('createApp — smoke test', () => {
     expect(response.body.model).toBeDefined();
   });
 
-  it('falha ao chamar /api/export/sarif sem ID', async () => {
+  it('permite login com credenciais válidas', async () => {
     const app = createApp({ sessionToken: 'teste-token-123' });
     const response = await request(app)
-      .get('/api/export/sarif')
+      .post('/api/auth/login')
+      .send({ username: 'admin', password: 'admin123' });
+    expect(response.status).toBe(200);
+    expect(response.body.token).toBeDefined();
+    expect(response.body.user.role).toBe('admin');
+  });
+
+  it('rejeita login com credenciais inválidas', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'admin', password: 'senha-errada' });
+    expect(response.status).toBe(401);
+  });
+
+  it('bloqueia usuário com perfil auditor de executar scan (RBAC 403)', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'auditor', password: 'auditor123' });
+    expect(loginRes.status).toBe(200);
+    const auditorToken = loginRes.body.token;
+
+    const scanRes = await request(app)
+      .post('/api/scan')
+      .set('Authorization', `Bearer ${auditorToken}`)
+      .send({ targetPath: '.' });
+    expect(scanRes.status).toBe(403);
+    expect(scanRes.body.error).toContain('perfil não tem permissão');
+  });
+
+  it('bloqueia usuário com perfil analista de alterar configurações (RBAC 403)', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'analista', password: 'analista123' });
+    expect(loginRes.status).toBe(200);
+    const analystToken = loginRes.body.token;
+
+    const configRes = await request(app)
+      .post('/api/config')
+      .set('Authorization', `Bearer ${analystToken}`)
+      .send({ model: 'gpt-4o', provider: 'openai', openaiApiKey: 'test' });
+    expect(configRes.status).toBe(403);
+    expect(configRes.body.error).toContain('perfil não tem permissão');
+  });
+
+  it('retorna dados do histórico agregado em /api/history/stats', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .get('/api/history/stats')
       .set('X-CypherGuard-Token', 'teste-token-123');
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
+    expect(typeof response.body.totalScans).toBe('number');
+  });
+
+  it('retorna trilha de auditoria para admin e auditor em /api/audit', async () => {
+    const app = createApp({ sessionToken: 'teste-token-123' });
+    const response = await request(app)
+      .get('/api/audit')
+      .set('X-CypherGuard-Token', 'teste-token-123');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
   });
 });

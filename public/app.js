@@ -7,10 +7,22 @@ if (!CG_TOKEN) {
     }
 }
 
-const headers = {
-    'Content-Type': 'application/json',
-    'X-CypherGuard-Token': CG_TOKEN
-};
+let currentUser = null;
+
+function getAuthHeaders() {
+    const h = {
+        'Content-Type': 'application/json',
+        'X-CypherGuard-Token': CG_TOKEN
+    };
+    const token = localStorage.getItem('cg_auth_token');
+    if (token) {
+        h['Authorization'] = `Bearer ${token}`;
+        h['X-CypherGuard-Auth-Token'] = token;
+    }
+    return h;
+}
+
+const headers = getAuthHeaders();
 
 /* ---------- terminal hero typing ---------- */
 const termLines = [
@@ -57,13 +69,21 @@ function goToLanding(){
 function switchTab(name){
   document.querySelectorAll('.sb-item').forEach(el=>el.classList.toggle('active', el.dataset.tab===name));
   document.querySelectorAll('.tab-panel').forEach(el=>el.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
+  const panel = document.getElementById('tab-'+name);
+  if (panel) panel.classList.add('active');
+  if (name === 'history') fillHistory();
+  if (name === 'access') { loadUsers(); loadAuditLogs(); }
 }
 
 /* ---------- API Logic ---------- */
 let currentScanId = null;
 
 async function runScan(){
+  if (currentUser && currentUser.role === 'auditor') {
+    showToast('✕ Modo Auditor: Execução de novos scans bloqueada.');
+    return;
+  }
+
   const btn=document.getElementById('runBtn');
   const pathInput = document.getElementById('pathInput').value.trim();
   if(!pathInput) {
@@ -90,7 +110,7 @@ async function runScan(){
   try {
     const response = await fetch('/api/scan', {
         method: 'POST',
-        headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ targetPath: pathInput })
     });
 
@@ -109,6 +129,7 @@ async function runScan(){
         renderCards(data.results, pathInput, activeModel);
         btn.disabled=false; btn.innerText='▶  Executar Auditoria';
         fillHistory(); // Refresh history
+        loadAuditLogs(); // Refresh audit logs
     }, 800); // Visual delay for elegance
 
   } catch(e) {
@@ -249,30 +270,122 @@ function formatCodeSnippet(lines) {
 /* ---------- history ---------- */
 async function fillHistory(){
     try {
-        const response = await fetch('/api/history', { headers });
+        // Carrega KPIs agregados
+        try {
+            const statsRes = await fetch('/api/history/stats', { headers: getAuthHeaders() });
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                const sEl = document.getElementById('kpiTotalScans');
+                const aEl = document.getElementById('kpiTotalAlerts');
+                const mEl = document.getElementById('kpiUniqueModels');
+                if (sEl) sEl.innerText = stats.totalScans || 0;
+                if (aEl) aEl.innerText = stats.totalAlerts || 0;
+                if (mEl) mEl.innerText = stats.uniqueModels || 0;
+            }
+        } catch(e) {
+            console.warn('Falha ao carregar KPIs', e);
+        }
+
+        const response = await fetch('/api/history', { headers: getAuthHeaders() });
         const data = await response.json();
         
         const body=document.getElementById('histBody');
         if(Array.isArray(data) && data.length > 0) {
-            document.getElementById('histCount').innerText = `${data.length} execuções registradas`;
-            body.innerHTML = data.map(h => `
-                <tr>
-                    <td>${h.id.substring(0,8)}</td>
-                    <td>${new Date(h.timestamp).toLocaleString()}</td>
-                    <td class="badge-count" style="text-align:center; font-weight:600;">${h.totalAlerts}</td>
-                    <td style="text-align:center;">
-                        <button class="dl-btn" style="margin:0 auto; background:transparent; border:none; cursor:pointer; padding:6px; color:var(--primary); opacity:0.8;" title="Baixar relatório SARIF" onclick="downloadSarif('${h.id}')" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        </button>
+            const countEl = document.getElementById('histCount');
+            if (countEl) countEl.innerText = `${data.length} auditorias registradas`;
+            
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            body.innerHTML = data.map(h => {
+                const shortPath = h.targetPath ? h.targetPath.split('/').slice(-2).join('/') : '-';
+                return `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="font-family:var(--mono); font-size:12px; color:var(--text-1); font-weight:600;">${h.id.substring(0,8)}…</td>
+                    <td style="color:var(--text-2); font-size:12px;">${new Date(h.timestamp).toLocaleString()}</td>
+                    <td style="color:var(--text-3); font-size:11.5px; font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${h.targetPath}">
+                        ${shortPath} <span style="color:var(--text-1);">(${h.modelUsed || 'local'})</span>
                     </td>
-                </tr>`).join('');
+                    <td class="badge-count" style="text-align:center; font-weight:700; font-family:var(--mono);">${h.totalAlerts}</td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; align-items:center; gap:6px;">
+                            <button class="action-btn-sm" title="Reabrir e inspecionar este relatório na interface" onclick="loadScanIntoView('${h.id}')">
+                                Ver
+                            </button>
+                            <button class="action-btn-sm" title="Baixar relatório SARIF 2.1.0" onclick="downloadSarif('${h.id}')">
+                                SARIF
+                            </button>
+                            ${isAdmin ? `
+                            <button class="action-btn-sm action-btn-danger" title="Excluir scan (Administrador)" onclick="deleteHistoryScan('${h.id}')">
+                                Excluir
+                            </button>` : ''}
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
         } else {
-            body.innerHTML = '<tr><td colspan="4" class="text-center">Nenhum histórico encontrado.</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:24px; color:var(--text-3);">Nenhuma auditoria registrada até o momento.</td></tr>';
+            const countEl = document.getElementById('histCount');
+            if (countEl) countEl.innerText = '0 auditorias';
         }
     } catch(e) {
         console.error('Failed to load history', e);
     }
 }
+
+async function loadScanIntoView(id){
+    try {
+        showToast('Carregando relatório da auditoria...');
+        const res = await fetch(`/api/history/${id}`, { headers: getAuthHeaders() });
+        if (!res.ok) {
+            showToast('✕ Não foi possível carregar os detalhes do scan.');
+            return;
+        }
+        const data = await res.json();
+        currentScanId = id;
+        
+        const pathInput = document.getElementById('pathInput');
+        if (pathInput && data.entry && data.entry.targetPath) {
+            pathInput.value = data.entry.targetPath;
+        }
+
+        document.getElementById('emptyState').style.display='none';
+        document.getElementById('resultsWrap').classList.add('active');
+
+        renderCards(data.results, data.entry?.targetPath || './src', data.entry?.modelUsed || 'Audit');
+
+        const titleEl = document.getElementById('resultsTitle');
+        if (titleEl) {
+            titleEl.innerText = `${data.results.length} alertas carregados do histórico (${id.substring(0,8)})`;
+        }
+
+        switchTab('scan');
+        window.scrollTo(0, 260);
+        showToast(`✓ Auditoria ${id.substring(0,8)} carregada no painel!`);
+    } catch(e) {
+        console.error('Erro ao carregar histórico no painel', e);
+        showToast('✕ Erro ao abrir auditoria.');
+    }
+}
+
+async function deleteHistoryScan(id){
+    if (!confirm(`Deseja realmente remover o scan ${id.substring(0,8)} do histórico?`)) return;
+    try {
+        const res = await fetch(`/api/history/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            showToast('✓ Registro removido com sucesso.');
+            fillHistory();
+            loadAuditLogs();
+        } else {
+            const data = await res.json();
+            showToast(`✕ ${data.error || 'Erro ao remover scan'}`);
+        }
+    } catch(e) {
+        showToast('✕ Erro de conexão.');
+    }
+}
+
 function downloadSarif(id){
   window.location.href = `/api/export/sarif?id=${id}&token=${CG_TOKEN}`;
   showToast('⇩ Download SARIF iniciado');
@@ -307,7 +420,7 @@ const modelInfos = {
 
 async function loadSettings() {
     try {
-        const res = await fetch('/api/config', { headers });
+        const res = await fetch('/api/config', { headers: getAuthHeaders() });
         const data = await res.json();
         if (data) {
             window.__savedKeys = {
@@ -340,14 +453,12 @@ async function loadSettings() {
 
 async function updateHealthStatus() {
     try {
-      const token = localStorage.getItem('cypher_token') || 'local';
-      const res = await fetch('/api/health', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch('/api/health', { headers: getAuthHeaders() });
       if (!res.ok) return;
       const data = await res.json();
       
       const { ollama, openai, gemini, activeProvider } = data;
       
-      // Update sidebar
       const activeObjKey = activeProvider === 'google' ? 'gemini' : activeProvider;
       const activeObj = data[activeObjKey];
       const providerName = activeProvider === 'google' ? 'Gemini' : (activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1));
@@ -363,7 +474,6 @@ async function updateHealthStatus() {
         statusDot.style.background = 'var(--fp)';
       }
       
-      // Update settings tab icons if they exist
       const updateIcon = (id, obj) => {
         const el = document.getElementById(id);
         if(!el) return;
@@ -400,18 +510,18 @@ function onProviderChange(){
       
       onModelChange();
 
-      // INJETANDO O INPUT VIA JAVASCRIPT PARA DRIBLAR O CACHE DO HTML/ADBLOCKERS
       let container = document.getElementById('dynamicApiContainer');
       if (!container) {
           container = document.createElement('div');
           container.id = 'dynamicApiContainer';
-          // Inserir antes do botão de salvar
           const saveRow = document.querySelector('.save-row');
-          saveRow.parentNode.insertBefore(container, saveRow);
+          if (saveRow && saveRow.parentNode) {
+            saveRow.parentNode.insertBefore(container, saveRow);
+          }
       }
       
       if (provider === 'ollama') {
-          container.innerHTML = ''; // Limpamos tudo, não precisamos de caixa nem hint extra
+          container.innerHTML = '';
           window.__currentProviderType = 'ollama';
       } else {
           const placeholder = provider === 'openai' ? 'sk-••••••••••••••••••••••••' : 'AIza••••••••••••••••••••••••';
@@ -423,7 +533,9 @@ function onProviderChange(){
               <div class="key-input-wrap" style="display:flex; gap:10px; align-items:center;">
                 <div style="position:relative; flex:1;">
                   <input type="password" id="magicalApiKey" placeholder="${placeholder}" value="${savedKey}" style="width:100%;">
-                  <button class="eye-btn" onclick="toggleKeyVisibility()" id="eyeBtn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%);">👁</button>
+                  <button class="eye-btn" onclick="toggleKeyVisibility()" id="eyeBtn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); display:flex; align-items:center;" title="Alternar visibilidade">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </button>
                 </div>
                 <span id="status-${provider}" style="display:flex; align-items:center; width:20px; height:20px;"></span>
               </div>
@@ -431,21 +543,24 @@ function onProviderChange(){
             </div>
           `;
           window.__currentProviderType = provider;
-          updateHealthStatus(); // Atualiza instantaneamente os ícones recém-criados
+          updateHealthStatus();
       }
       
   } catch (err) {
-      alert('ERRO no onProviderChange: ' + err.message);
+      console.error('ERRO no onProviderChange', err);
   }
 }
 
 function onModelChange() {
-  const model = document.getElementById('modelSelect').value;
+  const modelSelect = document.getElementById('modelSelect');
+  if (!modelSelect) return;
+  const model = modelSelect.value;
   const infoBox = document.getElementById('benchmarkInfo');
+  if (!infoBox) return;
   const info = modelInfos[model] || { title: 'Modelo Customizado', text: 'Sem dados de benchmark para este modelo específico.' };
   
   infoBox.innerHTML = `
-    <h3 style="font-family: var(--mono); font-size: 13.5px; margin-bottom: 10px; margin-top: 24px; font-weight: 600;">⚙️ Specs: ${info.title}</h3>
+    <h3 style="font-family: var(--mono); font-size: 13.5px; margin-bottom: 10px; margin-top: 24px; font-weight: 600;">Specs: ${info.title}</h3>
     <p style="font-size: 13px; color: var(--text-2); line-height: 1.6;">${info.text}</p>
   `;
 }
@@ -457,6 +572,11 @@ function toggleKeyVisibility(){
 }
 
 async function saveSettings(){
+  if (currentUser && currentUser.role !== 'admin') {
+    showToast('✕ Apenas Administradores podem salvar configurações.');
+    return;
+  }
+
   const provider = document.getElementById('providerSelect').value;
   const model = document.getElementById('modelSelect').value;
   
@@ -474,7 +594,7 @@ async function saveSettings(){
   try {
       const res = await fetch('/api/config', {
           method: 'POST',
-          headers,
+          headers: getAuthHeaders(),
           body: JSON.stringify({ provider, model, openaiApiKey, googleApiKey })
       });
       const data = await res.json();
@@ -484,8 +604,9 @@ async function saveSettings(){
           showToast('✓ Configurações salvas com sucesso');
           setTimeout(()=>msg.classList.remove('show'),2400);
           loadSettings(); // update status indicator
+          loadAuditLogs(); // Refresh audit logs
       } else {
-          showToast('✕ Erro ao salvar');
+          showToast(`✕ ${data.error || 'Erro ao salvar'}`);
       }
   } catch(e) {
       showToast('✕ Erro de conexão');
@@ -504,7 +625,6 @@ function showToast(text){
 
 // Keep the token in URL if user navigates manually
 if(window.location.pathname === '/' && CG_TOKEN) {
-    // Initial fetch of settings to see if server is online
     loadSettings();
 }
 
@@ -525,3 +645,626 @@ function showDetails(index) {
   
   modal.showModal();
 }
+
+/* ============ AUTENTICAÇÃO E RBAC ============ */
+async function checkAuth() {
+  const token = localStorage.getItem('cg_auth_token');
+  if (token) {
+    try {
+      const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user;
+        updateUIForUser(currentUser);
+        return;
+      }
+    } catch (e) {
+      console.warn('Falha ao validar token existente', e);
+    }
+  }
+
+  // Se não houver sessão ativa, faz login automático como Admin para facilidade de teste
+  await login('admin', 'admin123', true);
+}
+
+async function login(username, password, silent = false) {
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CypherGuard-Token': CG_TOKEN },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (!silent) {
+        const errEl = document.getElementById('loginErrorMsg');
+        if (errEl) errEl.innerText = data.error || 'Credenciais inválidas.';
+      }
+      return false;
+    }
+
+    localStorage.setItem('cg_auth_token', data.token);
+    currentUser = data.user;
+    updateUIForUser(currentUser);
+    closeLoginModal();
+    if (!silent) {
+      showToast(`✓ Conectado como ${currentUser.name} (${currentUser.role.toUpperCase()})`);
+    }
+
+    // Atualiza histórico e controle de acesso se visíveis
+    fillHistory();
+    loadUsers();
+    loadAuditLogs();
+    return true;
+  } catch (e) {
+    console.error('Erro no login', e);
+    if (!silent) {
+      const errEl = document.getElementById('loginErrorMsg');
+      if (errEl) errEl.innerText = 'Erro ao conectar com o servidor.';
+    }
+    return false;
+  }
+}
+
+async function logout() {
+  const token = localStorage.getItem('cg_auth_token');
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() });
+    } catch (e) {}
+  }
+  localStorage.removeItem('cg_auth_token');
+  currentUser = null;
+  showToast('Sessão encerrada.');
+  updateUIForUser({ username: 'Visitante', role: 'auditor', name: 'Não Autenticado' });
+  openLoginModal();
+}
+
+function updateUIForUser(user) {
+  if (!user) return;
+  const nameEl = document.getElementById('sbUserName');
+  const badgeEl = document.getElementById('sbUserBadge');
+  if (nameEl) nameEl.innerText = user.username;
+  if (badgeEl) {
+    badgeEl.innerText = (user.role || 'GUEST').toUpperCase();
+    badgeEl.className = `badge-role badge-${user.role || 'auditor'}`;
+  }
+
+  const isAuditor = user.role === 'auditor';
+  const isAdmin = user.role === 'admin';
+
+  // Banner e botão de scan
+  const audWarn = document.getElementById('auditorWarning');
+  const runBtn = document.getElementById('runBtn');
+  if (audWarn) audWarn.classList.toggle('hidden', !isAuditor);
+  if (runBtn) {
+    if (isAuditor) {
+      runBtn.disabled = true;
+      runBtn.style.opacity = '0.5';
+      runBtn.style.cursor = 'not-allowed';
+      runBtn.title = 'Modo Auditor: Apenas leitura';
+    } else {
+      runBtn.disabled = false;
+      runBtn.style.opacity = '1';
+      runBtn.style.cursor = 'pointer';
+      runBtn.title = '';
+    }
+  }
+
+  // Trava de configurações
+  const setWarn = document.getElementById('settingsRoleWarning');
+  const saveBtn = document.getElementById('btnSaveSettings');
+  if (setWarn) setWarn.classList.toggle('hidden', isAdmin);
+  if (saveBtn) {
+    saveBtn.disabled = !isAdmin;
+    saveBtn.style.opacity = isAdmin ? '1' : '0.5';
+    saveBtn.style.cursor = isAdmin ? 'pointer' : 'not-allowed';
+  }
+
+  // Formulário de criar usuário (apenas admin)
+  const createForm = document.getElementById('createUserFormWrap');
+  if (createForm) {
+    createForm.style.display = isAdmin ? 'block' : 'none';
+  }
+}
+
+function openLoginModal() {
+  const m = document.getElementById('loginModal');
+  if (m) {
+    m.classList.remove('hidden');
+    const errEl = document.getElementById('loginErrorMsg');
+    if (errEl) errEl.innerText = '';
+  }
+}
+
+function closeLoginModal() {
+  const m = document.getElementById('loginModal');
+  if (m) m.classList.add('hidden');
+}
+
+function fillLoginPreset(u, p) {
+  const uEl = document.getElementById('loginUsername');
+  const pEl = document.getElementById('loginPassword');
+  if (uEl) uEl.value = u;
+  if (pEl) pEl.value = p;
+  const errEl = document.getElementById('loginErrorMsg');
+  if (errEl) errEl.innerText = '';
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const u = document.getElementById('loginUsername').value.trim();
+  const p = document.getElementById('loginPassword').value;
+  await login(u, p, false);
+}
+
+/* ============ USUÁRIOS E AUDITORIA ============ */
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/auth/users', { headers: getAuthHeaders() });
+    const tbody = document.getElementById('userListBody');
+    const countEl = document.getElementById('userCount');
+    if (!res.ok) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="padding:12px; color:var(--text-3); text-align:center;">Apenas Administradores podem visualizar a lista de usuários.</td></tr>`;
+      if (countEl) countEl.innerText = 'Restrito (Admin)';
+      return;
+    }
+    const users = await res.json();
+    if (countEl) countEl.innerText = `${users.length} usuários cadastrados`;
+    if (tbody) {
+      tbody.innerHTML = users.map(u => `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding:8px 10px; font-weight:600; font-family:var(--mono);">${u.username}</td>
+          <td style="padding:8px 10px; color:var(--text-2);">${u.name}</td>
+          <td style="padding:8px 10px;"><span class="badge-role badge-${u.role}">${u.role.toUpperCase()}</span></td>
+          <td style="padding:8px 10px; color:var(--text-3); font-family:var(--mono); font-size:11px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Nunca'}</td>
+        </tr>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('Erro ao listar usuários', e);
+  }
+}
+
+async function submitNewUser() {
+  const u = document.getElementById('newUsername').value.trim();
+  const n = document.getElementById('newName').value.trim();
+  const p = document.getElementById('newPassword').value;
+  const r = document.getElementById('newRole').value;
+
+  if (!u || !n || !p) {
+    showToast('✕ Preencha usuário, nome e senha.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/users', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username: u, name: n, password: p, role: r })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(`✕ ${data.error || 'Erro ao criar usuário'}`);
+      return;
+    }
+    showToast(`✓ Usuário "${u}" criado com sucesso!`);
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newName').value = '';
+    document.getElementById('newPassword').value = '';
+    loadUsers();
+    loadAuditLogs();
+  } catch (e) {
+    showToast('✕ Falha ao criar usuário.');
+  }
+}
+
+async function loadAuditLogs() {
+  try {
+    const res = await fetch('/api/audit?limit=40', { headers: getAuthHeaders() });
+    const tbody = document.getElementById('auditListBody');
+    if (!tbody) return;
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="4" style="padding:12px; color:var(--text-3); text-align:center;">Apenas Administradores e Auditores podem consultar a trilha de auditoria.</td></tr>`;
+      return;
+    }
+    const logs = await res.json();
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="padding:12px; color:var(--text-3); text-align:center;">Nenhum registro de auditoria disponível.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = logs.map(l => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding:6px 10px; color:var(--text-3); font-family:var(--mono); white-space:nowrap; font-size:11px;">${new Date(l.timestamp).toLocaleTimeString()}</td>
+        <td style="padding:6px 10px;"><span class="badge-role badge-${l.role}">${l.username}</span></td>
+        <td style="padding:6px 10px; font-weight:600; color:var(--text-1); font-size:12px;">${l.action}</td>
+        <td style="padding:6px 10px; color:var(--text-2); font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${l.details || ''}">${l.details || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Erro ao carregar logs', e);
+  }
+}
+
+// Inicializa a checagem de sessão ao carregar a página
+checkAuth();
+
+/* ==========================================================================
+   INTERACTIVE 3D CYBER LATTICE & HOLOGRAPHIC SHIELD CANVAS (LANDING PAGE)
+   ========================================================================== */
+function init3dHeroCanvas() {
+  const canvas = document.getElementById('hero3dCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = Math.min(window.innerHeight, 900));
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = Math.min(window.innerHeight, 900);
+  });
+
+  let mouse = { x: width * 0.7, y: height * 0.45, targetX: width * 0.7, targetY: height * 0.45 };
+  window.addEventListener('mousemove', (e) => {
+    mouse.targetX = e.clientX;
+    mouse.targetY = e.clientY;
+  });
+
+  const baseShield = [
+    { x: 0, y: -130, z: 0 },
+    { x: 95, y: -110, z: 20 },
+    { x: 105, y: 10, z: 25 },
+    { x: 75, y: 85, z: 15 },
+    { x: 0, y: 140, z: 0 },
+    { x: -75, y: 85, z: 15 },
+    { x: -105, y: 10, z: 25 },
+    { x: -95, y: -110, z: 20 },
+  ];
+
+  const innerCore = [
+    { x: 0, y: -60, z: 35 },
+    { x: 50, y: -10, z: 40 },
+    { x: 0, y: 65, z: 35 },
+    { x: -50, y: -10, z: 40 },
+  ];
+
+  const particleCount = 42;
+  const particles = [];
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      theta: (i / particleCount) * Math.PI * 2,
+      speed: 0.008 + Math.random() * 0.008,
+      yOffset: (Math.random() - 0.5) * 160,
+      radius: 170 + Math.random() * 80,
+      size: 1.5 + Math.random() * 2,
+      pulse: Math.random() * Math.PI,
+    });
+  }
+
+  let angleY = 0;
+  let angleX = 0;
+
+  function render() {
+    // Only render if page-landing is not hidden
+    const landing = document.getElementById('page-landing');
+    if (landing && landing.classList.contains('hidden')) {
+      requestAnimationFrame(render);
+      return;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+    mouse.x += (mouse.targetX - mouse.x) * 0.05;
+    mouse.y += (mouse.targetY - mouse.y) * 0.05;
+
+    const originX = width > 900 ? width * 0.72 : width * 0.5;
+    const originY = height > 600 ? height * 0.44 : height * 0.5;
+
+    const targetAngleY = ((mouse.x - originX) / width) * 0.8;
+    const targetAngleX = -((mouse.y - originY) / height) * 0.6;
+    angleY += (targetAngleY - angleY) * 0.06;
+    angleX += (targetAngleX - angleX) * 0.06;
+
+    const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+    const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+
+    function project(p) {
+      let x1 = p.x * cosY + p.z * sinY;
+      let y1 = p.y;
+      let z1 = -p.x * sinY + p.z * cosY;
+      let x2 = x1;
+      let y2 = y1 * cosX - z1 * sinX;
+      let z2 = y1 * sinX + z1 * cosX;
+      const fov = 420;
+      const scale = fov / (fov + z2);
+      return { x: originX + x2 * scale, y: originY + y2 * scale, scale: scale, z: z2 };
+    }
+
+    particles.forEach((pt) => {
+      pt.theta += pt.speed;
+      pt.pulse += 0.03;
+      const px = Math.cos(pt.theta) * pt.radius;
+      const pz = Math.sin(pt.theta) * pt.radius;
+      const py = pt.yOffset + Math.sin(pt.pulse) * 15;
+      const proj = project({ x: px, y: py, z: pz });
+      const alpha = Math.max(0.1, (proj.scale - 0.7) * 0.8);
+
+      ctx.fillStyle = `rgba(0, 245, 160, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(proj.x, proj.y, pt.size * proj.scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (Math.sin(pt.theta) > 0.4) {
+        ctx.strokeStyle = `rgba(0, 245, 160, ${alpha * 0.15})`;
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(proj.x, proj.y);
+        const coreProj = project({ x: 0, y: 0, z: 20 });
+        ctx.lineTo(coreProj.x, coreProj.y);
+        ctx.stroke();
+      }
+    });
+
+    const projShield = baseShield.map(project);
+    const projCore = innerCore.map(project);
+    const centerProj = project({ x: 0, y: 0, z: 20 });
+
+    const radialGlow = ctx.createRadialGradient(centerProj.x, centerProj.y, 10, centerProj.x, centerProj.y, 160);
+    radialGlow.addColorStop(0, 'rgba(0, 245, 160, 0.22)');
+    radialGlow.addColorStop(0.5, 'rgba(0, 210, 255, 0.08)');
+    radialGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = radialGlow;
+    ctx.beginPath();
+    ctx.arc(centerProj.x, centerProj.y, 160, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(projShield[0].x, projShield[0].y);
+    for (let i = 1; i < projShield.length; i++) ctx.lineTo(projShield[i].x, projShield[i].y);
+    ctx.closePath();
+
+    const shieldGrad = ctx.createLinearGradient(projShield[0].x, projShield[0].y, projShield[4].x, projShield[4].y);
+    shieldGrad.addColorStop(0, 'rgba(0, 245, 160, 0.16)');
+    shieldGrad.addColorStop(0.5, 'rgba(14, 22, 34, 0.75)');
+    shieldGrad.addColorStop(1, 'rgba(0, 210, 255, 0.08)');
+    ctx.fillStyle = shieldGrad;
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0, 245, 160, 0.7)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < projShield.length; i++) {
+      ctx.beginPath();
+      ctx.moveTo(projShield[i].x, projShield[i].y);
+      ctx.lineTo(centerProj.x, centerProj.y);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(projCore[0].x, projCore[0].y);
+    for (let i = 1; i < projCore.length; i++) ctx.lineTo(projCore[i].x, projCore[i].y);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0, 245, 160, 0.28)';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    requestAnimationFrame(render);
+  }
+
+  render();
+}
+
+/* ============ SPOTLIGHT MOUSE-TRACKER ============ */
+function initSpotlightHover() {
+  const cards = document.querySelectorAll('.bento-card, .playground-shell');
+  cards.forEach((card) => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty('--spotlight-x', `${e.clientX - rect.left}px`);
+      card.style.setProperty('--spotlight-y', `${e.clientY - rect.top}px`);
+    });
+  });
+}
+
+/* ============ PLAYGROUND SIMULATOR DATA & LOGIC ============ */
+const LANDING_SCENARIOS = {
+  sqli: {
+    name: 'SQL Injection em Autenticação',
+    file: 'src/api/auth/login.py',
+    cwe: 'CWE-89 (SQL Injection)',
+    rule: 'python.sqlalchemy.security.injection.tainted-sql-string',
+    aiVerdict: 'TRUE POSITIVE (Confirmado por IA)',
+    aiReasoning: 'A variável `username` é recebida diretamente da requisição HTTP (corpo JSON) sem sanitização ou uso de binds de parâmetros. O invasor pode injetar `\' OR \'1\'=\'1` e contornar a autenticação.',
+    confidence: '99.4%',
+    executionLogs: [
+      { prefix: '❯', text: 'cypherguard scan ./src/api/auth --ai=ollama/llama3', class: 'log-prefix' },
+      { prefix: '◈', text: '[Semgrep AST] Identificado candidato a SQLi em login.py:42', class: 'log-warn' },
+      { prefix: '⌁', text: '[AST Parser] Extraindo fluxo de dados para variável `username`...', class: 'log-dim' },
+      { prefix: '⚡', text: '[LLM Judge] Inspecionando sanitizadores (escapes, orm param binds)...', class: 'log-main' },
+      { prefix: '⚡', text: '[LLM Judge] Nenhum sanitizador encontrado. Entrada concatena diretamente na query.', class: 'log-danger' },
+      { prefix: '✓', text: '[Veredito] Risco Crítico Confirmado: CWE-89 (Confiança: 99.4%)', class: 'log-danger' },
+      { prefix: '🛠', text: '[Patcher] Gerando patch seguro com queries parametrizadas SQLAlchemy...', class: 'log-safe' },
+      { prefix: '📄', text: '[SARIF 2.1.0] Exportado relatório estruturado em .cypherguard/audit.sarif', class: 'log-dim' },
+    ],
+    diffHtml: `
+<div class="diff-row ctx"><span class="diff-sign"> </span>  def authenticate_user(db: Session, credentials: LoginRequest):</div>
+<div class="diff-row del"><span class="diff-sign">-</span>      query = f"SELECT * FROM users WHERE username = '{credentials.username}'"</div>
+<div class="diff-row del"><span class="diff-sign">-</span>      user = db.execute(text(query)).fetchone()</div>
+<div class="diff-row add"><span class="diff-sign">+</span>      # Correção Segura: Uso de queries parametrizadas (Prepared Statements)</div>
+<div class="diff-row add"><span class="diff-sign">+</span>      stmt = select(User).where(User.username == credentials.username)</div>
+<div class="diff-row add"><span class="diff-sign">+</span>      user = db.execute(stmt).scalar_one_or_none()</div>
+<div class="diff-row ctx"><span class="diff-sign"> </span>      if not user or not verify_password(credentials.password, user.hashed_password):</div>
+<div class="diff-row ctx"><span class="diff-sign"> </span>          raise HTTPException(status_code=401, detail="Credenciais inválidas")</div>
+    `,
+    sarifJson: `{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "CypherGuard AI", "semanticVersion": "1.2.0" } },
+      "results": [{ "ruleId": "CWE-89-SQL-Injection", "level": "error", "message": { "text": "Injeção SQL confirmada via IA." } }]
+    }
+  ]
+}`
+  },
+  path: {
+    name: 'Path Traversal (LFI)',
+    file: 'src/controllers/report.ts',
+    cwe: 'CWE-22 (Improper Limitation of a Pathname)',
+    rule: 'javascript.express.security.audit.path-traversal',
+    aiVerdict: 'TRUE POSITIVE (Confirmado por IA)',
+    aiReasoning: 'A aplicação concatena `req.query.file` sem resolução canônica com `path.resolve()` nem verificação de prefixo permitido. Entradas contendo `../../etc/passwd` escapam do diretório restrito.',
+    confidence: '98.8%',
+    executionLogs: [
+      { prefix: '❯', text: 'cypherguard scan ./src/controllers/report.ts --ai=local', class: 'log-prefix' },
+      { prefix: '◈', text: '[Semgrep AST] Alerta de Path Traversal em report.ts:88', class: 'log-warn' },
+      { prefix: '⌁', text: '[AST Parser] Verificando se existe verificação de sandbox ou regex...', class: 'log-dim' },
+      { prefix: '⚡', text: '[LLM Judge] O parâmetro `req.query.file` flui sem barreiras até `fs.readFile`.', class: 'log-danger' },
+      { prefix: '✓', text: '[Veredito] Risco Alto Confirmado: CWE-22 (Confiança: 98.8%)', class: 'log-danger' },
+      { prefix: '🛠', text: '[Patcher] Injetando verificação canônica com PathTraversalGuard...', class: 'log-safe' },
+      { prefix: '📄', text: '[SARIF 2.1.0] 1 vulnerabilidade crítica catalogada', class: 'log-dim' },
+    ],
+    diffHtml: `
+<div class="diff-row ctx"><span class="diff-sign"> </span>  export async function downloadReport(req: Request, res: Response) {</div>
+<div class="diff-row del"><span class="diff-sign">-</span>    const target = path.join(__dirname, '../public/reports', req.query.file as string);</div>
+<div class="diff-row add"><span class="diff-sign">+</span>    const safeBase = path.resolve(__dirname, '../public/reports');</div>
+<div class="diff-row add"><span class="diff-sign">+</span>    const target = path.resolve(safeBase, path.basename(req.query.file as string));</div>
+<div class="diff-row add"><span class="diff-sign">+</span>    if (!target.startsWith(safeBase)) throw new Error('Path traversal attempt');</div>
+<div class="diff-row ctx"><span class="diff-sign"> </span>    return res.sendFile(target);</div>
+<div class="diff-row ctx"><span class="diff-sign"> </span>  }</div>
+    `,
+    sarifJson: `{ "ruleId": "CWE-22-Path-Traversal", "level": "error", "message": { "text": "Path traversal verificado: leitura arbitrária de arquivos." } }`
+  },
+  secret: {
+    name: 'Falso Positivo Descartado: Segredo de Teste',
+    file: 'tests/mocks/jwt_fixture.ts',
+    cwe: 'CWE-798 (Use of Hardcoded Credentials)',
+    rule: 'generic.secrets.security.hardcoded-jwt-secret',
+    aiVerdict: 'FALSE POSITIVE (Ruído Eliminado)',
+    aiReasoning: 'A variável encontra-se dentro de um diretório de testes (`tests/mocks`) e é utilizada exclusivamente em fixtures de testes unitários offline. Não há risco de segurança em ambiente de produção.',
+    confidence: '99.9%',
+    executionLogs: [
+      { prefix: '❯', text: 'cypherguard scan ./tests --ai=ollama/qwen2.5', class: 'log-prefix' },
+      { prefix: '◈', text: '[Semgrep AST] Alerta de Hardcoded Secret em jwt_fixture.ts:14', class: 'log-warn' },
+      { prefix: '⌁', text: '[AST Parser] Avaliando contexto do módulo e imports circundantes...', class: 'log-dim' },
+      { prefix: '⚡', text: '[LLM Judge] O arquivo é fixture de teste com sufixo Mock / Spec.', class: 'log-safe' },
+      { prefix: '✓', text: '[Veredito] Falso Positivo descartado automaticamente. Alerta suprimido!', class: 'log-safe' },
+      { prefix: '🛡', text: '[Triagem] Menos 1 alerta manual para o time de segurança revisar.', class: 'log-safe' },
+    ],
+    diffHtml: `
+<div class="diff-row ctx"><span class="diff-sign"> </span>  // Arquivo de teste offline detectado como seguro</div>
+<div class="diff-row ctx"><span class="diff-sign"> </span>  export const MOCK_JWT_SECRET = 'ci_offline_mock_test_token_never_in_prod';</div>
+<div class="diff-row add"><span class="diff-sign">+</span>  // [CypherGuard] Marcado como Falso Positivo: Suprimido do relatório SARIF final</div>
+    `,
+    sarifJson: `{ "ruleId": "CWE-798-Hardcoded-Secret", "suppressions": [{ "kind": "inSource", "justification": "Test mock fixture descartado pela IA" }] }`
+  }
+};
+
+let currentLandingScenario = 'sqli';
+
+function initPlaygroundSimulator() {
+  const scenarioBtns = document.querySelectorAll('.scenario-btn');
+  scenarioBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const scen = btn.getAttribute('data-scenario');
+      if (!scen || !LANDING_SCENARIOS[scen]) return;
+      scenarioBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentLandingScenario = scen;
+      renderLandingPlayground();
+    });
+  });
+
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      if (!tab) return;
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.play-view').forEach((v) => v.classList.remove('active'));
+      const target = document.getElementById(`view-${tab}`);
+      if (target) target.classList.add('active');
+    });
+  });
+
+  renderLandingPlayground();
+}
+
+function renderLandingPlayground() {
+  const data = LANDING_SCENARIOS[currentLandingScenario];
+  if (!data) return;
+
+  const logContainer = document.getElementById('view-logs');
+  if (logContainer) {
+    logContainer.innerHTML = data.executionLogs.map(l => `
+      <div class="log-row">
+        <span class="log-prefix">${l.prefix}</span>
+        <span class="${l.class || 'log-text'}">${l.text}</span>
+      </div>
+    `).join('');
+  }
+
+  const aiContainer = document.getElementById('view-ai');
+  if (aiContainer) {
+    aiContainer.innerHTML = `
+      <div class="ai-reasoning-grid">
+        <div class="ai-card-block">
+          <div class="ai-card-title"><span>◈</span> Diagnóstico da IA</div>
+          <div style="margin-bottom:12px;"><strong style="color:var(--text-1); font-size:14px;">${data.name}</strong></div>
+          <div style="font-size:12px; color:var(--text-3); margin-bottom:10px;">Arquivo: <span class="log-highlight">${data.file}</span></div>
+          <div style="font-size:12px; color:var(--text-3); margin-bottom:14px;">Classificação: <span style="color:var(--accent);">${data.cwe}</span></div>
+          <div style="font-size:12.5px; color:var(--text-2); line-height:1.6;">${data.aiReasoning}</div>
+        </div>
+        <div class="ai-card-block">
+          <div class="ai-card-title"><span>⚡</span> Triagem e Métricas</div>
+          <div style="font-size:11px; color:var(--text-3); text-transform:uppercase;">Veredito Semântico:</div>
+          <div style="font-size:16px; font-weight:800; color:${data.aiVerdict.includes('FALSE') ? 'var(--accent)' : 'var(--danger)'}; margin:4px 0 14px;">${data.aiVerdict}</div>
+          <div style="font-size:11px; color:var(--text-3); text-transform:uppercase;">Confiança Calibrada:</div>
+          <div style="font-size:24px; font-weight:700; color:var(--text-1); margin-top:2px;">${data.confidence}</div>
+          <div style="font-size:11.5px; color:var(--text-3); margin-top:12px;">Regra AST: <code>${data.rule}</code></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const diffContainer = document.getElementById('view-diff');
+  if (diffContainer) {
+    diffContainer.innerHTML = `
+      <div style="margin-bottom:12px; font-size:12px; color:var(--text-3);">
+        Patch sugerido para: <span class="log-highlight">${data.file}</span>
+      </div>
+      <div class="diff-container">${data.diffHtml}</div>
+    `;
+  }
+
+  const sarifContainer = document.getElementById('view-sarif');
+  if (sarifContainer) {
+    sarifContainer.innerHTML = `<pre style="color:var(--text-3); font-size:12px; line-height:1.6;">${data.sarifJson.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+  }
+}
+
+function initCopyButtons() {
+  const cliBox = document.getElementById('cliInstallBox');
+  const copyBubble = document.getElementById('cliCopyBubble');
+  if (cliBox && copyBubble) {
+    cliBox.addEventListener('click', () => {
+      navigator.clipboard.writeText('npx cypherguard-ai scan ./src');
+      copyBubble.classList.add('active');
+      setTimeout(() => copyBubble.classList.remove('active'), 2000);
+    });
+  }
+}
+
+// Inicializações da nova landing
+init3dHeroCanvas();
+initSpotlightHover();
+initPlaygroundSimulator();
+initCopyButtons();
+

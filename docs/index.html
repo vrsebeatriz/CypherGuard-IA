@@ -1,78 +1,370 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CypherGuard AI — Segurança sem Ruídos</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CypherGuard AI — Segurança de Código sem Ruídos (SAST + IA Local)</title>
+  <meta name="description" content="Auditoria de código inteligente de nova geração. Cruza motores estáticos (Semgrep) com LLMs locais para eliminar falsos positivos e gerar correções automatizadas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- =================== LANDING PAGE =================== -->
-<div id="page-landing" class="app-shell">
-  <nav class="landing-nav">
-    <div class="brand"><div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>CypherGuard<small>&nbsp;AI</small></div>
-    <a class="nav-cta" href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" style="text-decoration:none;">Ver no GitHub 🐙</a>
-  </nav>
 
-  <section class="hero">
-    <div class="hero-copy">
-      <div class="eyebrow">SAST + SCA · Validação semântica por IA</div>
-      <h1>Segurança sem <span class="accent">Ruídos</span>. Auditoria de código impulsionada por IA.</h1>
-      <p>O CypherGuard AI cruza motores estáticos como o Semgrep com LLMs — locais ou em nuvem — para confirmar cada alerta antes de chegar até você. Menos triagem manual, mais vulnerabilidades reais corrigidas.</p>
+  <!-- Ambient Light Effects -->
+  <div class="ambient-glow"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Interactive 3D Canvas -->
+  <canvas id="hero3dCanvas"></canvas>
+
+  <!-- =================== NAVIGATION =================== -->
+  <header class="site-nav">
+    <nav class="nav-glass-bar">
+      <a href="#" class="brand-wrap">
+        <div class="brand-icon-holo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <div class="brand-title">
+          CypherGuard <span class="dim">AI</span>
+        </div>
+      </a>
+
+      <div class="nav-links">
+        <a href="#playground" class="nav-link">Simulador Live</a>
+        <a href="#features" class="nav-link">Arquitetura</a>
+        <a href="#benchmarks" class="nav-link">Benchmarks TCC</a>
+        <a href="#cicd" class="nav-link">GitHub Action</a>
+      </div>
+
+      <div class="nav-actions">
+        <a href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" class="btn-github-pill" title="Ver código-fonte e dar uma estrela no GitHub">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>Star on GitHub</span>
+          <span class="star-badge-counter">★ 1.4k</span>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- =================== HERO SECTION =================== -->
+  <section class="hero-section">
+    <div class="container">
+      <a href="#features" class="hero-badge-pill">
+        <span class="pulse-dot-wrap">
+          <span class="pulse-dot-ring"></span>
+          <span class="pulse-dot"></span>
+        </span>
+        <span>v1.2.0 · Local-First AI SAST Engine</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+
+      <h1 class="hero-headline">
+        Segurança de Código <br>
+        <span class="gradient-text-emerald">Sem Ruídos nem Falsos Alarmes.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        O <strong>CypherGuard AI</strong> cruza a velocidade do Semgrep com a cognição semântica de modelos locais (Ollama). Entende o fluxo de dados real, elimina alertas triviais e gera correções automáticas antes do commit.
+      </p>
+
       <div class="hero-actions">
-        <a class="btn-primary" href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center;">🐙&nbsp; Ver no GitHub</a>
-        <a class="btn-ghost" href="#features">Ver funcionalidades</a>
-      </div>
-      <div class="hero-meta">
-        <div><span class="num">IA</span><span class="lbl">redução inteligente de falsos positivos</span></div>
-        <div><span class="num">100%</span><span class="lbl">local-first, código nunca sai da máquina*</span></div>
-        <div><span class="num">SARIF</span><span class="lbl">exportação nativa p/ CI/CD</span></div>
-      </div>
-    </div>
+        <div class="cli-install-box" id="cliInstallBox" title="Clique para copiar comando de execução">
+          <span class="cli-prompt-symbol">❯</span>
+          <span>npx cypherguard-ai scan ./src</span>
+          <button class="btn-copy-icon" aria-label="Copiar comando">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <div class="copy-feedback-bubble" id="cliCopyBubble">Copiado!</div>
+        </div>
 
-    <div class="terminal solid-panel-hi">
-      <div class="term-bar">
-        <span class="term-dot" style="background:#ff5f57"></span>
-        <span class="term-dot" style="background:#febc2e"></span>
-        <span class="term-dot" style="background:#28c840"></span>
-        <span class="term-title">cypherguard scan ./src</span>
+        <a href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" class="btn-primary-glow">
+          <span>Explorar Repositório</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+        </a>
       </div>
-      <div class="term-body" id="termBody"></div>
+
+      <div class="proof-ribbon">
+        <div class="proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>100% Local-First (Zero Cloud Leak)</span>
+        </div>
+        <div class="proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Exportação Padrão SARIF 2.1.0</span>
+        </div>
+        <div class="proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Llama 3 · Qwen 2.5 · DeepSeek · Gemini</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="features" id="features">
-    <div class="features-head">
-      <div class="eyebrow">Como funciona</div>
-      <h2>Três pilares, um único veredito confiável.</h2>
-      <p>Cada camada existe para eliminar uma fonte diferente de ruído — do motor de análise à decisão final sobre exportar ou não um alerta.</p>
-    </div>
-    <div class="feature-grid">
-      <div class="f-card solid-panel">
-        <div class="f-icon c1">◈</div>
-        <h3>Detecção Híbrida</h3>
-        <p>SAST tradicional e análise de AST (Semgrep) localizam candidatos a vulnerabilidade; a validação semântica por IA decide o que é real, entendendo contexto e fluxo de dados que regras estáticas não alcançam.</p>
-        <div class="f-foot">Semgrep · AST · LLM Judge</div>
+  <!-- =================== INTERACTIVE PLAYGROUND SIMULATOR =================== -->
+  <section class="playground-section" id="playground">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">
+          <span>⚡</span> Playground Interativo
+        </div>
+        <h2 class="section-title">Experimente o Motor de Análise Semântica</h2>
+        <p class="section-desc">Escolha um cenário real de código vulnerável e veja como o CypherGuard analisa a AST, aciona o LLM e constrói o patch de correção.</p>
       </div>
-      <div class="f-card solid-panel">
-        <div class="f-icon c2">⌁</div>
-        <h3>Privacidade Local-First</h3>
-        <p>Inferência via Ollama roda direto na sua máquina — seu código nunca trafega para fora. Precisa de mais poder de raciocínio? Ative provedores em nuvem como OpenAI ou Gemini quando fizer sentido.</p>
-        <div class="f-foot">Ollama · OpenAI · Gemini</div>
-      </div>
-      <div class="f-card solid-panel">
-        <div class="f-icon c3">⇩</div>
-        <h3>Exportação Universal</h3>
-        <p>Todo scan gera um relatório no padrão SARIF, pronto para ser consumido por esteiras de CI/CD, GitHub Code Scanning ou qualquer ferramenta compatível com o formato.</p>
-        <div class="f-foot">SARIF 2.1.0</div>
+
+      <div class="playground-shell">
+        <!-- Scenario Selector Bar -->
+        <div class="scenario-selector-bar">
+          <span class="scenario-label">Cenário de Teste:</span>
+          <div class="scenario-pills">
+            <button class="scenario-btn active" data-scenario="sqli">
+              <span>SQLi em Autenticação</span>
+            </button>
+            <button class="scenario-btn" data-scenario="path">
+              <span>Path Traversal (LFI)</span>
+            </button>
+            <button class="scenario-btn" data-scenario="secret">
+              <span>Falso Positivo Descartado</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Header Controls & Tabs -->
+        <div class="playground-header">
+          <div class="window-controls">
+            <span class="w-dot red"></span>
+            <span class="w-dot yellow"></span>
+            <span class="w-dot green"></span>
+          </div>
+
+          <div class="playground-tabs">
+            <button class="tab-btn active" data-tab="logs">
+              <span>▶</span> Execução Live
+            </button>
+            <button class="tab-btn" data-tab="ai">
+              <span>⚡</span> Raciocínio da IA
+            </button>
+            <button class="tab-btn" data-tab="diff">
+              <span>🛡</span> Patch Automático
+            </button>
+            <button class="tab-btn" data-tab="sarif">
+              <span>📄</span> SARIF 2.1.0
+            </button>
+          </div>
+        </div>
+
+        <!-- Views Container -->
+        <div class="playground-body">
+          <div class="play-view active" id="view-logs"></div>
+          <div class="play-view" id="view-ai"></div>
+          <div class="play-view" id="view-diff"></div>
+          <div class="play-view" id="view-sarif"></div>
+        </div>
       </div>
     </div>
   </section>
-</div>
 
-<script src="landing.js"></script>
+  <!-- =================== BENTO GRID (ARCHITECTURE & FEATURES) =================== -->
+  <section class="bento-section" id="features">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">
+          <span>◈</span> Arquitetura Híbrida
+        </div>
+        <h2 class="section-title">Por que o CypherGuard AI Supera SASTs Convencionais</h2>
+        <p class="section-desc">Uma abordagem em pipeline de precisão militar, desenhada para desenvolvedores e times de segurança que não toleram falsos positivos.</p>
+      </div>
+
+      <div class="bento-grid">
+        <!-- BENTO CARD 1: Large Pipeline Flow (Span 8) -->
+        <div class="bento-card bento-col-8">
+          <span class="bento-badge-tag">Pipeline de 3 Etapas</span>
+          <h3 class="bento-card-title">Motor Híbrido: Da AST ao Veredito Limpo</h3>
+          <p class="bento-card-desc">O Semgrep localiza regras sintáticas em milissegundos; a IA analisa o contexto de execução, sanitizadores e dependências para validar se o vetor de ataque é viável.</p>
+
+          <div class="pipeline-flow-wrap">
+            <div class="flow-node active">
+              <div class="flow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              </div>
+              <strong style="font-size:12px; color:var(--text-pure);">1. Código Fonte</strong>
+              <span style="font-size:10px; color:var(--text-muted);">Python, TS, JS</span>
+            </div>
+
+            <div class="flow-arrow">➔</div>
+
+            <div class="flow-node active">
+              <div class="flow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+              </div>
+              <strong style="font-size:12px; color:var(--text-pure);">2. Semgrep AST</strong>
+              <span style="font-size:10px; color:var(--text-muted);">Candidatos Rápidos</span>
+            </div>
+
+            <div class="flow-arrow">➔</div>
+
+            <div class="flow-node active">
+              <div class="flow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+              <strong style="font-size:12px; color:var(--text-pure);">3. LLM Judge</strong>
+              <span style="font-size:10px; color:var(--text-muted);">Validação Semântica</span>
+            </div>
+
+            <div class="flow-arrow">➔</div>
+
+            <div class="flow-node active">
+              <div class="flow-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </div>
+              <strong style="font-size:12px; color:var(--emerald);">4. SARIF Limpo</strong>
+              <span style="font-size:10px; color:var(--text-muted);">Zero Ruídos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BENTO CARD 2: 100% Local-First (Span 4) -->
+        <div class="bento-card bento-col-4">
+          <span class="bento-badge-tag">Zero Cloud Leak</span>
+          <h3 class="bento-card-title">100% Soberania Local</h3>
+          <p class="bento-card-desc">Execute com Ollama e modelos Llama 3/Qwen. O código do seu software proprietário nunca sai do ambiente local nem trafega para servidores de terceiros.</p>
+          <div style="background:rgba(8,11,16,0.8); border:1px solid var(--glass-border); border-radius:12px; padding:16px; margin-top:20px; font-family:var(--font-mono); font-size:12px;">
+            <div style="display:flex; align-items:center; gap:8px; color:var(--emerald); margin-bottom:6px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:var(--emerald);"></span>
+              <span>localhost:11434 (Ollama)</span>
+            </div>
+            <div style="color:var(--text-muted); font-size:11px;">Isolamento de rede auditado · Sem telemetria</div>
+          </div>
+        </div>
+
+        <!-- BENTO CARD 3: Scientific Validation (Span 6) -->
+        <div class="bento-card bento-col-6" id="benchmarks">
+          <span class="bento-badge-tag">Validação Científica (TCC)</span>
+          <h3 class="bento-card-title">Precisão Comprovada em Benchmarks</h3>
+          <p class="bento-card-desc">Resultados de experimentos controlados comparando o motor tradicional com a abordagem semântica do CypherGuard:</p>
+
+          <div class="benchmark-bars-box">
+            <div class="bench-row">
+              <div class="bench-label-row">
+                <span class="bench-name">Precisão Geral (CypherGuard AI)</span>
+                <span class="bench-pct">94.2%</span>
+              </div>
+              <div class="bench-track"><div class="bench-fill" style="width: 94.2%;"></div></div>
+            </div>
+
+            <div class="bench-row">
+              <div class="bench-label-row">
+                <span class="bench-name">Precisão SAST Convencional</span>
+                <span style="color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">52.8%</span>
+              </div>
+              <div class="bench-track"><div class="bench-fill dim" style="width: 52.8%;"></div></div>
+            </div>
+
+            <div class="bench-row">
+              <div class="bench-label-row">
+                <span class="bench-name">Redução Efetiva de Falsos Positivos</span>
+                <span class="bench-pct">-78.6%</span>
+              </div>
+              <div class="bench-track"><div class="bench-fill" style="width: 78.6%; background:linear-gradient(90deg, #00f5a0 0%, #3b82f6 100%);"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BENTO CARD 4: Automated Patching (Span 6) -->
+        <div class="bento-card bento-col-6">
+          <span class="bento-badge-tag">Correção Inteligente</span>
+          <h3 class="bento-card-title">Patcher com Confiança Calibrada</h3>
+          <p class="bento-card-desc">Não entregue apenas um relatório de problemas. O CypherGuard gera patches unified diff prontos para merge, com backup de segurança automático (`.bak`).</p>
+          <div style="background:rgba(8,11,16,0.8); border:1px solid var(--glass-border); border-radius:12px; padding:16px; margin-top:20px; font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">
+            <div style="color:var(--emerald); margin-bottom:4px;">$ cypherguard apply --patch-id=sqli-01</div>
+            <div>[Patcher] Backup gerado em auth.py.bak</div>
+            <div style="color:var(--text-pure);">[Patcher] 3 linhas modificadas com sucesso. Testes intactos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== GITHUB ACTION SHOWCASE =================== -->
+  <section class="github-workflow-section" id="cicd">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">
+          <span>⌁</span> Automação Contínua
+        </div>
+        <h2 class="section-title">Integre ao GitHub Actions em 30 Segundos</h2>
+        <p class="section-desc">Bloqueie vulnerabilidades reais diretamente no Pull Request com visualização nativa na aba Security do GitHub.</p>
+      </div>
+
+      <div class="workflow-card">
+        <div class="workflow-header">
+          <div class="workflow-filename">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span>.github/workflows/cypherguard.yml</span>
+          </div>
+          <button class="btn-copy-icon" id="btnCopyWorkflow" style="width:auto; padding:0 12px; font-size:12px; font-family:var(--font-mono); gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copiar YAML</span>
+          </button>
+        </div>
+
+        <div class="workflow-code-body" id="workflowCode">
+<span class="code-key">name</span>: <span class="code-str">CypherGuard AI Security Audit</span>
+<span class="code-key">on</span>: [<span class="code-str">push</span>, <span class="code-str">pull_request</span>]
+
+<span class="code-key">jobs</span>:
+  <span class="code-key">audit</span>:
+    <span class="code-key">runs-on</span>: <span class="code-str">ubuntu-latest</span>
+    <span class="code-key">steps</span>:
+      - <span class="code-key">uses</span>: <span class="code-str">actions/checkout@v4</span>
+      - <span class="code-key">name</span>: <span class="code-str">Executar Auditoria Semântica</span>
+        <span class="code-key">run</span>: <span class="code-str">npx cypherguard-ai scan ./src --format=sarif --output=results.sarif</span>
+      - <span class="code-key">name</span>: <span class="code-str">Publicar no GitHub Code Scanning</span>
+        <span class="code-key">uses</span>: <span class="code-str">github/codeql-action/upload-sarif@v3</span>
+        <span class="code-key">with</span>:
+          <span class="code-key">sarif_file</span>: <span class="code-str">results.sarif</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== CALL TO ACTION BANNER =================== -->
+  <div class="container">
+    <div class="cta-banner">
+      <h2>Pronto para eliminar ruídos no seu repositório?</h2>
+      <p>O CypherGuard AI é código aberto (Open-Source), gratuito e projetado para respeitar a privacidade do seu código.</p>
+      <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+        <a href="https://github.com/vrsebeatriz/CypherGuard-IA" target="_blank" class="btn-primary-glow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>Dar Star no GitHub</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== FOOTER =================== -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div class="footer-meta">
+        <div class="brand-icon-holo" style="width:26px; height:26px; border-radius:7px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <strong>CypherGuard AI</strong> · Trabalho de Conclusão de Curso (TCC)
+      </div>
+      <div>Licença MIT · Desenvolvido com Semgrep AST & LLMs Locais</div>
+    </div>
+  </footer>
+
+  <script src="landing.js"></script>
 </body>
 </html>
