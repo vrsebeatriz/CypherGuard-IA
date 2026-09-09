@@ -253,8 +253,8 @@ export function createApp(options: CreateAppOptions = {}) {
       res.json({
         provider: aiConf.provider || 'ollama',
         model: aiConf.model || 'llama3',
-        openaiApiKey: aiConf.openaiApiKey || aiConf.apiKey || '',
-        googleApiKey: aiConf.googleApiKey || aiConf.apiKey || ''
+        openaiApiKey: aiConf.openaiApiKey || aiConf.apiKey || process.env.OPENAI_API_KEY || '',
+        googleApiKey: aiConf.googleApiKey || aiConf.apiKey || process.env.GOOGLE_API_KEY || ''
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

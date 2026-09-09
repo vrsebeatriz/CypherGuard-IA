@@ -38,7 +38,16 @@ describe('assertWithinRoot', () => {
     fs.writeFileSync(outsideFile, 'secret');
 
     const linkPath = path.join(rootDir, 'vazamento.txt');
-    fs.symlinkSync(outsideFile, linkPath);
+    try {
+      fs.symlinkSync(outsideFile, linkPath);
+    } catch (e: any) {
+      if (process.platform === 'win32' && (e.code === 'EPERM' || e.code === 'EACCES')) {
+        fs.unlinkSync(outsideFile);
+        fs.rmdirSync(rootDir);
+        return;
+      }
+      throw e;
+    }
 
     expect(() => assertWithinRoot(rootDir, 'vazamento.txt')).toThrow(PathTraversalError);
 
@@ -54,7 +63,17 @@ describe('assertWithinRoot', () => {
     fs.writeFileSync(realFile, 'code');
 
     const linkPath = path.join(rootDir, 'link.js');
-    fs.symlinkSync(realFile, linkPath);
+    try {
+      fs.symlinkSync(realFile, linkPath);
+    } catch (e: any) {
+      if (process.platform === 'win32' && (e.code === 'EPERM' || e.code === 'EACCES')) {
+        fs.unlinkSync(realFile);
+        fs.rmdirSync(realDir);
+        fs.rmdirSync(rootDir);
+        return;
+      }
+      throw e;
+    }
 
     const resolved = assertWithinRoot(rootDir, 'link.js');
     expect(resolved).toBe(fs.realpathSync(linkPath));

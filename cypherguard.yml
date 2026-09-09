@@ -1,6 +1,6 @@
 ai:
-  provider: ollama
-  model: gemma2:9b
+  provider: google
+  model: gemini-1.5-flash
   temperature: 0
   baseUrl: http://localhost:11434
   apiKey: ''

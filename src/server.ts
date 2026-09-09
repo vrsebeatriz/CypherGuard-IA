@@ -1,12 +1,19 @@
+import 'dotenv/config';
 import { createApp } from './app';
 import { OllamaManager } from './utils/ollamaManager';
+import { ConfigLoader } from './config/loader';
 
 const port = Number(process.env.PORT) || 3000;
 const app = createApp();
 
 async function startServer() {
-  // Garante que o motor Ollama local esteja rodando
-  await OllamaManager.ensureRunning();
+  const config = ConfigLoader.loadConfig();
+  const provider = config.ai?.provider || 'ollama';
+
+  // Garante que o motor Ollama local esteja rodando apenas quando o provider configurado for ollama
+  if (provider === 'ollama') {
+    await OllamaManager.ensureRunning();
+  }
 
   const server = app.listen(port, () => {
     console.log(`\n🛡️ CypherGuard AI Local Interface rodando em http://localhost:${port}\n`);

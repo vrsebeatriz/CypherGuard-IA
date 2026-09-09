@@ -1,7 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import * as dotenv from 'dotenv';
 import { CypherConfig } from '../types';
+
+dotenv.config();
 
 export class ConfigLoader {
   private static readonly DEFAULT_CONFIG: CypherConfig = {
