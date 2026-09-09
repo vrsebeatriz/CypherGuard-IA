@@ -34,13 +34,13 @@ export class AIValidator {
       this.llm = new ChatOpenAI({
         modelName: modelName,
         temperature: temperature,
-        apiKey: openaiKey || process.env.OPENAI_API_KEY,
+        apiKey: openaiKey || process.env.OPENAI_API_KEY || 'dummy-key-for-init',
       });
     } else if (provider === 'google') {
       this.llm = new ChatGoogleGenerativeAI({
         model: modelName,
         temperature: temperature,
-        apiKey: googleKey || process.env.GOOGLE_API_KEY,
+        apiKey: googleKey || process.env.GOOGLE_API_KEY || 'dummy-key-for-init',
       });
     } else {
       // Default to ollama
