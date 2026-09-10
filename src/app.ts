@@ -15,6 +15,7 @@ import { ConfigLoader } from './config/loader';
 import { SarifGenerator } from './scanner/sarif';
 import { AuthService } from './auth/service';
 import { UserRole } from './auth/types';
+import { OllamaManager } from './utils/ollamaManager';
 
 export interface CreateAppOptions {
   sessionToken?: string;
@@ -278,6 +279,9 @@ export function createApp(options: CreateAppOptions = {}) {
 
       aiValidator.updateModel(model, provider, openaiApiKey, googleApiKey);
       ConfigLoader.saveConfig(aiValidator['config']);
+      if (provider === 'ollama') {
+        OllamaManager.ensureRunning().catch((err) => console.error('[OllamaManager] Erro ao iniciar:', err));
+      }
       const actor = (req as any).user?.username || 'admin';
       authService.logAudit(actor, 'admin', 'Alteração de configurações de IA', `Provedor: ${provider}, Modelo: ${model}`, req.ip);
       res.json({ success: true, model });

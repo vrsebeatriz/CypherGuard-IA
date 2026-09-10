@@ -1,11 +1,23 @@
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import http from 'http';
+import fs from 'fs';
+import path from 'path';
 // @ts-ignore
 import treeKill from 'tree-kill';
 
 export class OllamaManager {
   private static ollamaProcess: ChildProcess | null = null;
   private static wasStartedByUs = false;
+
+  private static getOllamaExecutable(): string {
+    if (process.platform === 'win32') {
+      const localAppOllama = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Ollama', 'ollama.exe');
+      if (fs.existsSync(localAppOllama)) {
+        return localAppOllama;
+      }
+    }
+    return 'ollama';
+  }
 
   public static async isOllamaRunning(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -33,7 +45,7 @@ export class OllamaManager {
     this.startOllama();
 
     // Aguardar até que a porta responda
-    let retries = 15;
+    let retries = 20;
     while (retries > 0) {
       await new Promise((r) => setTimeout(r, 1000));
       const up = await this.isOllamaRunning();
@@ -50,11 +62,13 @@ export class OllamaManager {
 
   private static startOllama(): void {
     try {
-      this.ollamaProcess = spawn('ollama', ['serve'], {
+      const exe = this.getOllamaExecutable();
+      this.ollamaProcess = spawn(exe, ['serve'], {
         detached: true,
         stdio: 'ignore', // ignorar output para não sujar o terminal
-        shell: process.platform === 'win32'
+        shell: false
       });
+      this.wasStartedByUs = true;
 
       this.ollamaProcess.on('error', (err: any) => {
         if (err.code === 'ENOENT') {
@@ -75,21 +89,34 @@ export class OllamaManager {
     }
   }
 
-  public static killOllama(): void {
-    if (!this.wasStartedByUs) {
+  public static killOllama(force = true): void {
+    if (!force && !this.wasStartedByUs) {
       console.log('✅ [OllamaManager] Ollama estava rodando previamente, não será encerrado.');
       return;
     }
     
+    console.log('🛑 [OllamaManager] Encerrando o serviço Ollama...');
     if (this.ollamaProcess && this.ollamaProcess.pid) {
-      console.log('🛑 [OllamaManager] Encerrando o serviço Ollama...');
       try {
-        // Usa tree-kill para matar o processo filho e toda a sua árvore de processos
         treeKill(this.ollamaProcess.pid, 'SIGKILL');
-        console.log('✅ [OllamaManager] Serviço Ollama encerrado com sucesso.');
-      } catch (e) {
-        console.error('❌ [OllamaManager] Erro ao tentar encerrar o Ollama:', e);
+      } catch (e: any) {
+        // ignora se processo já encerrou
       }
     }
+
+    // Encerramento de processos remanescentes (Windows e Unix)
+    try {
+      if (process.platform === 'win32') {
+        execSync('taskkill /F /IM ollama.exe /T', { stdio: 'ignore' });
+      } else {
+        execSync('pkill -f "ollama serve"', { stdio: 'ignore' });
+      }
+    } catch {
+      // ignora caso não haja processo aberto
+    }
+
+    this.ollamaProcess = null;
+    this.wasStartedByUs = false;
+    console.log('✅ [OllamaManager] Serviço Ollama encerrado com sucesso.');
   }
 }

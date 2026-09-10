@@ -33,18 +33,19 @@ async function startServer() {
   const shutdown = () => {
     console.log('\n[CypherGuard] Recebido sinal de encerramento. Fechando servidor...');
     server.close(() => {
-      OllamaManager.killOllama();
+      OllamaManager.killOllama(true);
       process.exit(0);
     });
     // Fallback in case connections are lingering
     setTimeout(() => {
-      OllamaManager.killOllama();
+      OllamaManager.killOllama(true);
       process.exit(0);
-    }, 5000);
+    }, 3000);
   };
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  process.on('SIGHUP', shutdown);
 }
 
 startServer();
