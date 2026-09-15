@@ -47,6 +47,7 @@ function switchTab(name){
   if (panel) panel.classList.add('active');
   if (name === 'history') fillHistory();
   if (name === 'access') { loadUsers(); loadAuditLogs(); }
+  closeMobileSidebar();
 }
 
 /* ---------- API Logic ---------- */
@@ -370,30 +371,12 @@ function downloadSarif(id){
 }
 
 /* ---------- settings ---------- */
-const providerHints={
-  'ollama':'Inferência 100% local. Nenhum código é enviado para fora da máquina.',
-  'openai':'Requer chave de API da OpenAI. O código analisado é enviado para a API da OpenAI.',
-  'google':'Requer chave de API do Google AI Studio. O código analisado é enviado para a API do Gemini.'
-};
-
-const providerModels = {
-  'ollama': ['qwen2.5:7b', 'llama3.1:8b', 'gemma2:9b'],
-  'openai': ['gpt-4o', 'gpt-4o-mini'],
-  'google': ['gemini-1.5-pro', 'gemini-1.5-flash']
-};
+const availableModels = ['qwen2.5:7b', 'llama3.1:8b', 'gemma2:9b'];
 
 const modelInfos = {
   'qwen2.5:7b': { title: 'Qwen 2.5 7B (Recomendado)', text: 'Campeão dos testes locais. Taxa de 100% de acerto nas vulnerabilidades testadas (0 FNs, 0 FPs) com altíssima velocidade. <strong>Requisito: 8GB+ RAM.</strong>' },
-  'llama3.1:8b': { title: 'Llama 3.1 8B', text: 'Excelente aderência a regras, mas demonstra ser excessivamente cauteloso (gerou falso alerta de SQLi durante testes). <strong>Requisito: 8GB+ RAM.</strong>' },
-  'gemma2:9b': { title: 'Gemma 2 9B', text: 'Bom raciocínio lógico pelo tamanho, ótimo para contextos mais longos localmente. <strong>Requisito: 12GB+ RAM.</strong>' },
-  'phi3.5': { title: 'Phi 3.5', text: '<span style="color:var(--danger)">Não Recomendado.</span> Exibiu alucinações e problemas graves de formatação JSON no benchmark, quebrando o pipeline. <strong>Requisito: 4GB+ RAM.</strong>' },
-  'deepseek-coder-v2': { title: 'DeepSeek Coder V2', text: 'Especialista em código e sintaxe pesada, porém extremamente exigente em memória de vídeo. <strong>Requisito crítico: 16GB+ RAM/VRAM.</strong>' },
-  
-  'gpt-4o': { title: 'GPT-4o (Nuvem)', text: 'Alta precisão, retórica impecável e zero custo computacional na máquina local. Ideal para auditorias onde privacidade não é uma barreira.' },
-  'gpt-4o-mini': { title: 'GPT-4o Mini (Nuvem)', text: 'Versão rápida e econômica, com raciocínio levemente inferior ao modelo principal, mas ótimo para triagem em massa.' },
-  
-  'gemini-1.5-pro': { title: 'Gemini 1.5 Pro (Nuvem)', text: 'Possui gigantesca janela de contexto, permitindo que a IA entenda relacionamentos complexos entre dezenas de arquivos simultaneamente.' },
-  'gemini-1.5-flash': { title: 'Gemini 1.5 Flash (Nuvem)', text: 'Modelo super veloz do Google, excelente para triagens unitárias e respostas instantâneas na nuvem.' }
+  'llama3.1:8b': { title: 'Llama 3.1 8B', text: 'Excelente aderência a regras e formatação estrita. <strong>Requisito: 8GB+ RAM.</strong>' },
+  'gemma2:9b': { title: 'Gemma 2 9B', text: 'Bom raciocínio lógico pelo tamanho, ótimo para contextos mais longos localmente. <strong>Requisito: 12GB+ RAM.</strong>' }
 };
 
 async function loadSettings() {
@@ -401,31 +384,29 @@ async function loadSettings() {
         const res = await fetch('/api/config', { headers: getAuthHeaders() });
         const data = await res.json();
         if (data) {
-            window.__savedKeys = {
-                openai: data.openaiApiKey || '',
-                google: data.googleApiKey || ''
-            };
-
-            document.getElementById('providerSelect').value = data.provider || 'ollama';
-            onProviderChange();
-            
             const modelSelect = document.getElementById('modelSelect');
-            if (data.model && providerModels[data.provider || 'ollama'].includes(data.model)) {
-                modelSelect.value = data.model;
-            } else if (data.model) {
-                modelSelect.innerHTML += `<option value="${data.model}">${data.model} (Custom)</option>`;
-                modelSelect.value = data.model;
+            if (modelSelect) {
+                modelSelect.innerHTML = availableModels.map(m => `<option value="${m}">${m}</option>`).join('');
+                if (data.model && availableModels.includes(data.model)) {
+                    modelSelect.value = data.model;
+                } else if (data.model) {
+                    modelSelect.innerHTML += `<option value="${data.model}">${data.model} (Custom)</option>`;
+                    modelSelect.value = data.model;
+                }
             }
             
             onModelChange();
             
-            const providerName = data.provider === 'google' ? 'Gemini' : (data.provider === 'openai' ? 'OpenAI' : 'Ollama');
-            document.getElementById('statusDot').className = 'dot-live';
-            document.getElementById('statusText').innerText = `${providerName} · ${data.model || 'ativo'}`;
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            if (statusDot) statusDot.className = 'dot-live';
+            if (statusText) statusText.innerText = `Ollama · ${data.model || 'qwen2.5:7b'}`;
         }
     } catch(e) {
-        document.getElementById('statusDot').className = 'dot-offline';
-        document.getElementById('statusText').innerText = 'Offline';
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        if (statusDot) statusDot.className = 'dot-offline';
+        if (statusText) statusText.innerText = 'Ollama · Offline';
     }
 }
 
@@ -435,98 +416,22 @@ async function updateHealthStatus() {
       if (!res.ok) return;
       const data = await res.json();
       
-      const { ollama, openai, gemini, activeProvider } = data;
-      
-      const activeObjKey = activeProvider === 'google' ? 'gemini' : activeProvider;
-      const activeObj = data[activeObjKey];
-      const providerName = activeProvider === 'google' ? 'Gemini' : (activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1));
-      
+      const { ollama } = data;
       const statusText = document.getElementById('statusText');
       const statusDot = document.getElementById('statusDot');
       
-      if (activeObj && activeObj.status === 'online') {
-        statusText.innerText = `${providerName} · ${activeObj.model} (Online, ${activeObj.latencyMs}ms)`;
-        statusDot.style.background = 'var(--success)';
-      } else {
-        statusText.innerText = `${providerName} · Offline / Config Inválida`;
-        statusDot.style.background = 'var(--fp)';
-      }
-      
-      const updateIcon = (id, obj) => {
-        const el = document.getElementById(id);
-        if(!el) return;
-        if(obj.status === 'online') {
-            el.innerHTML = `<span class="iconify" data-icon="lucide:check-circle" style="color:var(--success)"></span>`;
-            el.title = `Online (${obj.latencyMs}ms)`;
-        } else if (obj.status === 'unconfigured') {
-            el.innerHTML = `<span class="iconify" data-icon="lucide:minus-circle" style="color:var(--text-3)"></span>`;
-            el.title = `Não configurado`;
+      if (statusText && statusDot) {
+        if (ollama && ollama.status === 'online') {
+          statusText.innerText = `Ollama · ${ollama.model} (${ollama.latencyMs}ms)`;
+          statusDot.style.background = 'var(--accent)';
         } else {
-            el.innerHTML = `<span class="iconify" data-icon="lucide:x-circle" style="color:var(--fp)"></span>`;
-            el.title = `Offline / Erro de conexão`;
+          statusText.innerText = `Ollama · Offline`;
+          statusDot.style.background = 'var(--danger)';
         }
-      };
-      
-      updateIcon('status-openai', openai);
-      updateIcon('status-gemini', gemini);
-      
+      }
     } catch(err) {
       console.log('Erro no health check', err);
     }
-}
-
-function onProviderChange(){
-  try {
-      const provider = document.getElementById('providerSelect').value;
-      
-      let hint = providerHints[provider] || '';
-      const hintEl = document.getElementById('providerHint');
-      if(hintEl) hintEl.innerText = hint;
-      
-      const modelSelect = document.getElementById('modelSelect');
-      modelSelect.innerHTML = providerModels[provider].map(m => `<option value="${m}">${m}</option>`).join('');
-      
-      onModelChange();
-
-      let container = document.getElementById('dynamicApiContainer');
-      if (!container) {
-          container = document.createElement('div');
-          container.id = 'dynamicApiContainer';
-          const saveRow = document.querySelector('.save-row');
-          if (saveRow && saveRow.parentNode) {
-            saveRow.parentNode.insertBefore(container, saveRow);
-          }
-      }
-      
-      if (provider === 'ollama') {
-          container.innerHTML = '';
-          window.__currentProviderType = 'ollama';
-      } else {
-          const placeholder = provider === 'openai' ? 'sk-••••••••••••••••••••••••' : 'AIza••••••••••••••••••••••••';
-          const savedKey = window.__savedKeys ? window.__savedKeys[provider] : '';
-          
-          container.innerHTML = `
-            <div class="field" style="margin-top: 16px;">
-              <label>API Key (${provider === 'openai' ? 'OpenAI' : 'Google Gemini'})</label>
-              <div class="key-input-wrap" style="display:flex; gap:10px; align-items:center;">
-                <div style="position:relative; flex:1;">
-                  <input type="password" id="magicalApiKey" placeholder="${placeholder}" value="${savedKey}" style="width:100%;">
-                  <button class="eye-btn" onclick="toggleKeyVisibility()" id="eyeBtn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); display:flex; align-items:center;" title="Alternar visibilidade">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                  </button>
-                </div>
-                <span id="status-${provider}" style="display:flex; align-items:center; width:20px; height:20px;"></span>
-              </div>
-              <div class="hint" style="margin-top: 8px;">Armazenada apenas localmente, nunca enviada além do provedor selecionado.</div>
-            </div>
-          `;
-          window.__currentProviderType = provider;
-          updateHealthStatus();
-      }
-      
-  } catch (err) {
-      console.error('ERRO no onProviderChange', err);
-  }
 }
 
 function onModelChange() {
@@ -538,15 +443,9 @@ function onModelChange() {
   const info = modelInfos[model] || { title: 'Modelo Customizado', text: 'Sem dados de benchmark para este modelo específico.' };
   
   infoBox.innerHTML = `
-    <h3 style="font-family: var(--mono); font-size: 13.5px; margin-bottom: 10px; margin-top: 24px; font-weight: 600;">Specs: ${info.title}</h3>
+    <h3 style="font-family: var(--mono); font-size: 13.5px; margin-bottom: 10px; margin-top: 16px; font-weight: 600;">Specs: ${info.title}</h3>
     <p style="font-size: 13px; color: var(--text-2); line-height: 1.6;">${info.text}</p>
   `;
-}
-
-function toggleKeyVisibility(){
-  const input = document.getElementById('magicalApiKey');
-  if(!input) return;
-  input.type = (input.type === 'password') ? 'text' : 'password';
 }
 
 async function saveSettings(){
@@ -555,40 +454,47 @@ async function saveSettings(){
     return;
   }
 
-  const provider = document.getElementById('providerSelect').value;
-  const model = document.getElementById('modelSelect').value;
-  
-  const magicInput = document.getElementById('magicalApiKey');
-  const currentKey = magicInput ? magicInput.value : '';
-  
-  const openaiApiKey = (provider === 'openai') ? currentKey : (window.__savedKeys?.openai || '');
-  const googleApiKey = (provider === 'google') ? currentKey : (window.__savedKeys?.google || '');
-  
-  if (window.__savedKeys) {
-      if (provider === 'openai') window.__savedKeys.openai = currentKey;
-      if (provider === 'google') window.__savedKeys.google = currentKey;
-  }
+  const modelSelect = document.getElementById('modelSelect');
+  const model = modelSelect ? modelSelect.value : 'qwen2.5:7b';
 
   try {
       const res = await fetch('/api/config', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ provider, model, openaiApiKey, googleApiKey })
+          body: JSON.stringify({ model })
       });
       const data = await res.json();
       if(data.success) {
-          const msg=document.getElementById('saveMsg');
-          msg.classList.add('show');
-          showToast('✓ Configurações salvas com sucesso');
-          setTimeout(()=>msg.classList.remove('show'),2400);
-          loadSettings(); // update status indicator
-          loadAuditLogs(); // Refresh audit logs
+          const msg = document.getElementById('saveMsg');
+          if (msg) {
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 2400);
+          }
+          showToast(`✓ Modelo Ollama definido para ${model}`);
+          loadSettings();
+          loadAuditLogs();
       } else {
           showToast(`✕ ${data.error || 'Erro ao salvar'}`);
       }
   } catch(e) {
-      showToast('✕ Erro de conexão');
+      showToast('✕ Erro de conexão com o servidor');
   }
+}
+
+/* ---------- mobile drawer ---------- */
+function toggleMobileSidebar() {
+  const sb = document.getElementById('appSidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  if (!sb) return;
+  const isOpen = sb.classList.toggle('open');
+  if (bd) bd.classList.toggle('active', isOpen);
+}
+
+function closeMobileSidebar() {
+  const sb = document.getElementById('appSidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  if (sb) sb.classList.remove('open');
+  if (bd) bd.classList.remove('active');
 }
 
 /* ---------- toast ---------- */
@@ -606,8 +512,7 @@ if(window.location.pathname === '/' && CG_TOKEN) {
     loadSettings();
 }
 
-// Inicializa a select box com os modelos do provider padrão (Ollama) ao carregar
-onProviderChange();
+onModelChange();
 
 function showDetails(index) {
   const result = window.currentScanResults[index];

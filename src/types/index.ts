@@ -36,13 +36,10 @@ export interface AIValidationResult {
 
 export interface CypherConfig {
   ai?: {
-    provider?: 'ollama' | 'openai' | 'google';
+    provider?: 'ollama';
     model?: string;
     temperature?: number;
     baseUrl?: string;
-    apiKey?: string; // legacys
-    openaiApiKey?: string;
-    googleApiKey?: string;
   };
   ollama?: {
     model?: string;

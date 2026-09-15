@@ -74,7 +74,7 @@ export class OllamaManager {
         if (err.code === 'ENOENT') {
           console.warn('\n⚠️  [OllamaManager] Ollama não está instalado no sistema!');
           console.warn('⚠️  [OllamaManager] A inicialização falhou pois o executável "ollama" não foi encontrado.');
-          console.warn('⚠️  [OllamaManager] O servidor continuará funcionando normalmente para integrações em Nuvem (OpenAI/Gemini).\n');
+          console.warn('⚠️  [OllamaManager] Instale o Ollama via https://ollama.com para habilitar a auditoria com IA 100% Local-First.\n');
         } else {
           console.error('❌ [OllamaManager] Erro no processo Ollama:', err.message);
         }

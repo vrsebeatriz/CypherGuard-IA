@@ -3,9 +3,6 @@ ai:
   model: qwen2.5:7b
   temperature: 0
   baseUrl: http://localhost:11434
-  apiKey: ''
-  openaiApiKey: ''
-  googleApiKey: ''
 entropy:
   threshold: 5
 rules:

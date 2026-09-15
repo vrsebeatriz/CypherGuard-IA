@@ -176,7 +176,7 @@ describe('createApp — smoke test', () => {
     const configRes = await request(app)
       .post('/api/config')
       .set('Authorization', `Bearer ${analystToken}`)
-      .send({ model: 'gpt-4o', provider: 'openai', openaiApiKey: 'test' });
+      .send({ model: 'qwen2.5:7b' });
     expect(configRes.status).toBe(403);
     expect(configRes.body.error).toContain('perfil não tem permissão');
   });

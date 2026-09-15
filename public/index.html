@@ -260,11 +260,19 @@
 <div id="page-app" class="app-shell hidden">
   <div class="app-layout">
     
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
     <!-- Sidebar -->
-    <aside class="app-sidebar">
-      <div class="nav-brand" style="cursor:pointer;" onclick="goToLanding()">
-        <i class="ph-light ph-shield-check" style="font-size:24px;"></i>
-        CypherGuard
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sb-top">
+        <div class="nav-brand" style="cursor:pointer;" onclick="goToLanding()">
+          <i class="ph-light ph-shield-check" style="font-size:24px;"></i>
+          CypherGuard
+        </div>
+        <button class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="Fechar Menu">
+          <i class="ph-light ph-x"></i>
+        </button>
       </div>
 
       <nav class="sb-menu">
@@ -298,9 +306,14 @@
     <!-- Main Content -->
     <main class="app-main">
       <header class="app-header">
-        <div class="pill">
-          <span class="dot-live" id="statusDot"></span>
-          <span id="statusText" style="color:var(--text-2);">Motor Local: Pronto</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Abrir Menu">
+            <i class="ph-light ph-list"></i>
+          </button>
+          <div class="pill">
+            <span class="dot-live" id="statusDot"></span>
+            <span id="statusText" style="color:var(--text-2);">Ollama · Pronto</span>
+          </div>
         </div>
       </header>
 
@@ -443,7 +456,7 @@
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+          <div class="rbac-subgrid">
             <div class="bezel-shell sm">
               <div class="bezel-core" style="padding:24px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
@@ -498,33 +511,39 @@
         <!-- SETTINGS TAB -->
         <section class="tab-panel" id="tab-settings">
           <h1 class="page-title">Configurações de Inferência</h1>
-          <p class="page-desc">Defina as credenciais e parâmetros do LLM local ou provedores Cloud.</p>
+          <p class="page-desc">Defina o modelo de inteligência artificial do motor local Ollama.</p>
 
           <div id="settingsRoleWarning" class="readonly-banner hidden">
             <i class="ph-light ph-warning-circle" style="font-size:20px;"></i>
-            <span><strong>Acesso Restrito:</strong> Apenas Administradores podem alterar os provedores de inteligência artificial.</span>
+            <span><strong>Acesso Restrito:</strong> Apenas Administradores podem alterar o modelo de inteligência artificial.</span>
           </div>
 
           <div class="bezel-shell sm">
             <div class="bezel-core" style="padding:32px;">
               
-              <div style="display:flex; gap:32px; flex-wrap:wrap;">
-                <div style="flex:1; min-width: 250px;">
+              <div class="settings-grid">
+                <div class="settings-col">
                   <div class="form-group">
-                    <label>Provedor de IA</label>
-                    <select id="providerSelect" class="form-input" onchange="onProviderChange()">
-                      <option value="ollama">Ollama (Local-First)</option>
-                      <option value="openai">OpenAI (Cloud)</option>
-                      <option value="google">Google Gemini (Cloud)</option>
-                    </select>
-                    <div style="font-size:12px; color:var(--text-3); margin-top:8px;" id="providerHint">Inferência 100% isolada no hardware.</div>
+                    <label>Provedor de Inteligência Artificial</label>
+                    <div class="provider-badge-local">
+                      <div class="provider-badge-icon">
+                        <i class="ph-light ph-cpu"></i>
+                      </div>
+                      <div>
+                        <div style="font-weight:700; color:var(--text-1); font-size:13.5px;">Ollama (100% Local-First & Offline)</div>
+                        <div style="font-size:12px; color:var(--text-3); margin-top:2px;">Inferência estritamente local — nenhum dado é transmitido para a nuvem.</div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div class="form-group">
-                    <label>Modelo Específico</label>
+                  <div class="form-group" style="margin-top:24px;">
+                    <label for="modelSelect">Modelo Específico</label>
                     <select id="modelSelect" class="form-input" onchange="onModelChange()">
-                      <!-- Injected via app.js -->
+                      <option value="qwen2.5:7b">qwen2.5:7b</option>
+                      <option value="llama3.1:8b">llama3.1:8b</option>
+                      <option value="gemma2:9b">gemma2:9b</option>
                     </select>
+                    <div style="font-size:12px; color:var(--text-3); margin-top:8px;" id="providerHint">Inferência 100% isolada no hardware.</div>
                   </div>
                   
                   <div style="display:flex; align-items:center; gap:16px; margin-top:32px;">
@@ -533,11 +552,14 @@
                   </div>
                 </div>
 
-                <div style="flex:1; min-width: 250px;">
-                  <div style="background:var(--void); border:1px solid var(--border); border-radius:var(--radius-s); padding:24px;">
-                    <h4 style="font-family:var(--display); font-size:16px; margin-bottom:12px;">Compromisso de Sigilo</h4>
-                    <p style="font-size:13px; color:var(--text-2); margin-bottom:16px;">
-                      O CypherGuard assume por padrão o modelo **Local-First**. Ao ativar um provedor Cloud, a AST analisada trafegará via rede para APIs de terceiros.
+                <div class="settings-col">
+                  <div style="background:var(--void); border:1px solid var(--border); border-radius:var(--radius-s); padding:24px; height:100%;">
+                    <h4 style="font-family:var(--display); font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                      <i class="ph-light ph-lock-key" style="color:var(--accent); font-size:18px;"></i>
+                      Compromisso de Sigilo Total
+                    </h4>
+                    <p style="font-size:13px; color:var(--text-2); margin-bottom:16px; line-height:1.6;">
+                      O CypherGuard assume por padrão o modelo **Local-First**. Todo o código auditado e a AST permanecem em memória volátil exclusivamente no seu hardware.
                     </p>
                     <div id="benchmarkInfo" style="font-family:var(--mono); font-size:11px; color:var(--text-3);">
                       <!-- Preenchido via app.js -->

@@ -252,10 +252,8 @@ export function createApp(options: CreateAppOptions = {}) {
       const fullConfig = ConfigLoader.loadConfig();
       const aiConf = fullConfig.ai || {};
       res.json({
-        provider: aiConf.provider || 'ollama',
-        model: aiConf.model || 'llama3',
-        openaiApiKey: aiConf.openaiApiKey || aiConf.apiKey || process.env.OPENAI_API_KEY || '',
-        googleApiKey: aiConf.googleApiKey || aiConf.apiKey || process.env.GOOGLE_API_KEY || ''
+        provider: 'ollama',
+        model: aiConf.model || 'qwen2.5:7b'
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -264,27 +262,19 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.post('/api/config', requireRole('admin'), (req, res) => {
     try {
-      const { model, provider, openaiApiKey, googleApiKey } = req.body;
+      const { model } = req.body || {};
 
       if (!model) {
-        return res.status(400).json({ error: 'Model is required.' });
+        return res.status(400).json({ error: 'O nome do modelo (model) é obrigatório.' });
       }
 
-      if (provider === 'openai' && !openaiApiKey && !process.env.OPENAI_API_KEY) {
-        return res.status(400).json({ error: 'OpenAI API Key is required.' });
-      }
-      if (provider === 'google' && !googleApiKey && !process.env.GOOGLE_API_KEY) {
-        return res.status(400).json({ error: 'Google API Key is required.' });
-      }
-
-      aiValidator.updateModel(model, provider, openaiApiKey, googleApiKey);
+      aiValidator.updateModel(model);
       ConfigLoader.saveConfig(aiValidator['config']);
-      if (provider === 'ollama') {
-        OllamaManager.ensureRunning().catch((err) => console.error('[OllamaManager] Erro ao iniciar:', err));
-      }
+      OllamaManager.ensureRunning().catch((err) => console.error('[OllamaManager] Erro ao iniciar:', err));
+
       const actor = (req as any).user?.username || 'admin';
-      authService.logAudit(actor, 'admin', 'Alteração de configurações de IA', `Provedor: ${provider}, Modelo: ${model}`, req.ip);
-      res.json({ success: true, model });
+      authService.logAudit(actor, 'admin', 'Alteração de configurações de IA', `Provedor: ollama, Modelo: ${model}`, req.ip);
+      res.json({ success: true, model, provider: 'ollama' });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
