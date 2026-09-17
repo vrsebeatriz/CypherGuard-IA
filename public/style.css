@@ -783,8 +783,51 @@ input, select, textarea { font-family: inherit; color: inherit; outline: none; }
 .tab-panel.active { display: block; animation: fade-in 0.3s var(--bezier-smooth); }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.vuln-card.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Card Severity Colors */
+.vuln-card.card-high .bezel-core {
+  background: rgba(255, 60, 60, 0.03);
+  border: 1px solid rgba(255, 60, 60, 0.15);
+}
+
+.vuln-card.card-med .bezel-core {
+  background: rgba(255, 165, 0, 0.03);
+  border: 1px solid rgba(255, 165, 0, 0.15);
+}
+
+.vuln-card.card-fp .bezel-core {
+  background: rgba(0, 255, 120, 0.03);
+  border: 1px solid rgba(0, 255, 120, 0.15);
+}
+
+/* Diff Styling */
+.diff-row.del {
+  background: rgba(255, 60, 60, 0.1);
+  color: #ff8f8f;
+}
+
+.diff-row.add {
+  background: rgba(0, 255, 120, 0.1);
+  color: #8fffaf;
+}
+
+.diff-row.ctx {
+  color: var(--text-2);
+}
+
+.diff-sign {
+  display: inline-block;
+  width: 16px;
+  user-select: none;
+  opacity: 0.7;
 }
 
 /* Typography in App */

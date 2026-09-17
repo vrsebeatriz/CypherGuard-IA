@@ -188,6 +188,55 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
+  // --- GERENCIAMENTO DE ACESSOS (RBAC) ---
+  app.post('/api/auth/request-access', (req, res) => {
+    try {
+      const { username, name, password, role } = req.body || {};
+      if (!username || !name || !password || !role) {
+        return res.status(400).json({ error: 'Campos username, name, password e role são obrigatórios.' });
+      }
+      if (!['admin', 'analyst', 'auditor'].includes(role)) {
+        return res.status(400).json({ error: 'Perfil inválido.' });
+      }
+      const user = authService.createUser({ username, name, password, role, status: 'pending' }, 'system');
+      res.status(201).json({ success: true, user });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/auth/pending-requests', requireRole('admin'), (req, res) => {
+    try {
+      res.json(authService.getPendingUsers());
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/auth/approve/:id', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const adminUsername = (req as any).user?.username || 'admin';
+      const ok = authService.updateUserStatus(id, 'approved', adminUsername);
+      if (!ok) return res.status(404).json({ error: 'Usuário não encontrado.' });
+      res.json({ success: true, message: 'Usuário aprovado com sucesso.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/auth/reject/:id', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const adminUsername = (req as any).user?.username || 'admin';
+      const ok = authService.updateUserStatus(id, 'rejected', adminUsername);
+      if (!ok) return res.status(404).json({ error: 'Usuário não encontrado.' });
+      res.json({ success: true, message: 'Usuário rejeitado.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // --- TRILHA DE AUDITORIA (AUDIT LOG) ---
   app.get('/api/audit', requireRole('admin', 'auditor'), (req, res) => {
     try {

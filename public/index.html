@@ -25,7 +25,7 @@
         CypherGuard
       </div>
       <div class="nav-links">
-        <button onclick="goToLanding()">Motor Híbrido</button>
+        <button onclick="window.location.href = '/'">Motor Híbrido</button>
         <button onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Arquitetura</button>
       </div>
       <div style="display:flex; align-items:center; gap:16px; margin-left: 16px; padding-left: 24px; border-left: 1px solid var(--border-hi);">
@@ -559,13 +559,28 @@
                       Compromisso de Sigilo Total
                     </h4>
                     <p style="font-size:13px; color:var(--text-2); margin-bottom:16px; line-height:1.6;">
-                      O CypherGuard assume por padrão o modelo **Local-First**. Todo o código auditado e a AST permanecem em memória volátil exclusivamente no seu hardware.
+                      O CypherGuard assume por padrão o modelo <strong style="color:var(--text-1);">Local-First</strong>. Todo o código auditado e a AST permanecem em memória volátil exclusivamente no seu hardware.
                     </p>
                     <div id="benchmarkInfo" style="font-family:var(--mono); font-size:11px; color:var(--text-3);">
                       <!-- Preenchido via app.js -->
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div id="adminPortalContainer" class="bezel-shell sm" style="margin-top: 32px;">
+            <div class="bezel-core" style="padding:24px;">
+              <h3 style="font-family:var(--display); font-size:18px; margin-bottom:8px;">Portal do Admin (Gerenciamento de Acessos)</h3>
+              <p style="font-size:13px; color:var(--text-2); margin-bottom:16px;">Aprove ou rejeite solicitações de acesso de novos colaboradores à plataforma.</p>
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Usuário</th><th>Nome / Depto</th><th>Role Solicitada</th><th>Status</th><th>Ações</th></tr>
+                  </thead>
+                  <tbody id="adminRequestsBody">
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -587,15 +602,6 @@
 
       <p style="font-size:13px; color:var(--text-2); margin-bottom:24px;">Acesso ao dashboard corporativo.</p>
 
-      <div style="margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:24px;">
-        <label style="font-family:var(--mono); font-size:11px; color:var(--text-3); margin-bottom:12px; display:block;">PRESETS DE TESTE:</label>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('admin', 'admin123')">Admin</button>
-          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('analista', 'analista123')">Analista</button>
-          <button class="btn-outline" style="padding:6px 12px;" onclick="fillLoginPreset('auditor', 'auditor123')">Auditor</button>
-        </div>
-      </div>
-
       <form onsubmit="handleLoginSubmit(event)">
         <div class="form-group">
           <label>Usuário</label>
@@ -606,7 +612,49 @@
           <input id="loginPassword" type="password" class="form-input" required>
         </div>
         <div id="loginErrorMsg" style="color:var(--danger); font-size:12px; margin-bottom:16px; min-height:16px;"></div>
-        <button type="submit" class="btn-primary" style="width:100%; height:48px;">Entrar</button>
+        <button type="submit" class="btn-primary" style="width:100%; height:48px; margin-bottom:16px;">Entrar</button>
+        <div style="text-align:center; font-size:12px; color:var(--text-3);">
+          Primeiro acesso? <a href="javascript:void(0)" style="color:var(--accent); text-decoration:none;" onclick="openRequestAccessModal()">Solicite permissão ao Administrador</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =================== REQUEST ACCESS MODAL =================== -->
+<div id="requestAccessModal" class="modal-overlay hidden">
+  <div class="bezel-shell modal-content" style="max-width: 480px;">
+    <div class="bezel-core">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h3 style="font-family:var(--display); font-size:20px; color:var(--text-1);">Solicitar Acesso</h3>
+        <button onclick="closeRequestAccessModal()" style="font-size:20px; color:var(--text-3);"><i class="ph-light ph-x"></i></button>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-2); margin-bottom:24px;">Preencha os dados abaixo. Sua conta será submetida à aprovação do Administrador.</p>
+
+      <form onsubmit="handleRequestAccessSubmit(event)">
+        <div class="form-group">
+          <label>Nome Completo ou Departamento</label>
+          <input id="reqName" type="text" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label>Usuário (Login)</label>
+          <input id="reqUsername" type="text" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input id="reqPassword" type="password" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label>Perfil (Role) Solicitada</label>
+          <select id="reqRole" class="form-input" required>
+            <option value="analyst">Analista de Segurança</option>
+            <option value="auditor">Auditor de Conformidade</option>
+            <option value="admin">Administrador do Sistema</option>
+          </select>
+        </div>
+        <div id="reqErrorMsg" style="color:var(--danger); font-size:12px; margin-bottom:16px; min-height:16px;"></div>
+        <button type="submit" class="btn-primary" style="width:100%; height:48px;">Enviar Solicitação</button>
       </form>
     </div>
   </div>
@@ -616,7 +664,7 @@
 <dialog id="detailsModal" class="bezel-shell" style="background:transparent; border:none; margin: auto; padding:0; width:90%; max-width:600px;">
   <div class="bezel-core">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;">
-      <h3 id="modalTitle" style="font-family:var(--display); font-size:18px;">Detalhes</h3>
+      <h3 id="modalTitle" style="font-family:var(--display); font-size:18px; color:var(--text-1);">Detalhes</h3>
       <button onclick="document.getElementById('detailsModal').close()" style="color:var(--text-3); font-size:20px;"><i class="ph-light ph-x"></i></button>
     </div>
     <div id="modalBody" style="font-size:13px; color:var(--text-2); max-height:60vh; overflow-y:auto; line-height:1.6;"></div>

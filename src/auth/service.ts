@@ -66,7 +66,8 @@ export class AuthService {
         role: u.role,
         salt,
         passwordHash: this.hashPassword(u.pass, salt),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        status: 'approved'
       };
     });
 
@@ -97,11 +98,12 @@ export class AuthService {
       name: u.name,
       role: u.role,
       createdAt: u.createdAt,
-      lastLogin: u.lastLogin
+      lastLogin: u.lastLogin,
+      status: u.status
     }));
   }
 
-  public createUser(input: { username: string; name: string; password: string; role: UserRole }, actor = 'admin'): UserPublic {
+  public createUser(input: { username: string; name: string; password: string; role: UserRole; status?: 'pending'|'approved'|'rejected' }, actor = 'admin'): UserPublic {
     const users = this.readUsers();
     const existing = users.find(u => u.username.toLowerCase() === input.username.toLowerCase().trim());
     if (existing) {
@@ -109,6 +111,7 @@ export class AuthService {
     }
 
     const salt = crypto.randomBytes(16).toString('hex');
+    const status = input.status || 'approved';
     const newUser: User = {
       id: `usr-${crypto.randomBytes(6).toString('hex')}`,
       username: input.username.trim(),
@@ -116,19 +119,21 @@ export class AuthService {
       role: input.role,
       salt,
       passwordHash: this.hashPassword(input.password, salt),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      status
     };
 
     users.push(newUser);
     this.saveUsers(users);
-    this.logAudit(actor, 'admin', 'Criação de novo usuário', `Usuário "${newUser.username}" (${newUser.role}) criado.`);
+    this.logAudit(actor, 'admin', 'Criação de novo usuário', `Usuário "${newUser.username}" (${newUser.role}) criado com status ${status}.`);
 
     return {
       id: newUser.id,
       username: newUser.username,
       name: newUser.name,
       role: newUser.role,
-      createdAt: newUser.createdAt
+      createdAt: newUser.createdAt,
+      status: newUser.status
     };
   }
 
@@ -138,6 +143,11 @@ export class AuthService {
     if (!user) {
       this.logAudit(username, 'system', 'Falha no login', 'Usuário não encontrado', ip);
       return null;
+    }
+    
+    if (user.status && user.status !== 'approved') {
+      this.logAudit(username, user.role, 'Falha no login', `Status da conta é: ${user.status}`, ip);
+      throw new Error(`Conta ${user.status === 'pending' ? 'aguardando aprovação do Admin.' : 'rejeitada/bloqueada.'}`);
     }
 
     const testHash = this.hashPassword(pass, user.salt);
@@ -174,9 +184,25 @@ export class AuthService {
         name: user.name,
         role: user.role,
         createdAt: user.createdAt,
-        lastLogin: user.lastLogin
+        lastLogin: user.lastLogin,
+        status: user.status
       }
     };
+  }
+
+  public getPendingUsers(): UserPublic[] {
+    return this.getUsers().filter(u => u.status === 'pending');
+  }
+
+  public updateUserStatus(userId: string, status: 'approved' | 'rejected', adminUsername: string): boolean {
+    const users = this.readUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+
+    user.status = status;
+    this.saveUsers(users);
+    this.logAudit(adminUsername, 'admin', `Usuário ${status}`, `Admin atualizou o status de ${user.username} para ${status}`);
+    return true;
   }
 
   public logout(token: string) {

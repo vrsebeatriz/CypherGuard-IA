@@ -9,6 +9,7 @@ export interface User {
   salt: string;
   createdAt: string;
   lastLogin?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface UserPublic {
@@ -18,6 +19,7 @@ export interface UserPublic {
   role: UserRole;
   createdAt: string;
   lastLogin?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Session {

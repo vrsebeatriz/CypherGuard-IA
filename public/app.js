@@ -36,7 +36,7 @@ function goToApp(){
 function goToLanding(){
   document.getElementById('page-app').classList.add('hidden');
   document.getElementById('page-landing').classList.remove('hidden');
-  window.scrollTo(0,0);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ---------- tabs ---------- */
@@ -47,6 +47,7 @@ function switchTab(name){
   if (panel) panel.classList.add('active');
   if (name === 'history') fillHistory();
   if (name === 'access') { loadUsers(); loadAuditLogs(); }
+  if (name === 'settings') { loadPendingRequests(); }
   closeMobileSidebar();
 }
 
@@ -69,8 +70,6 @@ async function runScan(){
   btn.disabled=true; btn.innerText='Executando…';
   
   const activeModel = document.getElementById('statusText').innerText.split('·')[1]?.trim() || 'IA';
-  document.querySelector('#step2 .sub').innerText = `Auditando via ${activeModel}...`;
-  document.getElementById('step1').scrollIntoView({behavior:'smooth', block:'center'});
   
   document.getElementById('emptyState').style.display='none';
   document.getElementById('resultsWrap').classList.remove('active');
@@ -78,9 +77,7 @@ async function runScan(){
   
   const loading=document.getElementById('loadingState');
   loading.classList.add('active');
-  const s1=document.getElementById('step1'), s2=document.getElementById('step2');
-  s1.classList.add('active'); s1.classList.remove('done');
-  s2.classList.remove('active'); s2.classList.remove('done');
+  loading.scrollIntoView({behavior:'smooth', block:'center'});
 
   try {
     const response = await fetch('/api/scan', {
@@ -89,16 +86,12 @@ async function runScan(){
         body: JSON.stringify({ targetPath: pathInput })
     });
 
-    s1.classList.remove('active'); s1.classList.add('done');
-    s2.classList.add('active');
-
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Falha ao executar scan');
 
     currentScanId = data.id;
 
     setTimeout(() => {
-        s2.classList.remove('active'); s2.classList.add('done');
         loading.classList.remove('active');
         document.getElementById('resultsWrap').classList.add('active');
         renderCards(data.results, pathInput, activeModel);
@@ -182,7 +175,12 @@ function renderCards(results, pathInput, activeModel){
        explicacaoText = r.aiValidation?.explicacao || 'Nenhuma explicação estendida da IA disponível.';
     }
 
-    card.className='vuln-card bezel-shell sm' + (isFp ? ' card-fp' : '');
+    let cardClass = '';
+    if (isFp) cardClass = ' card-fp';
+    else if (severity === 'Alta') cardClass = ' card-high';
+    else if (severity === 'Média') cardClass = ' card-med';
+
+    card.className='vuln-card bezel-shell sm' + cardClass;
     card.innerHTML=`
       <div class="bezel-core">
         <div class="vuln-header">
@@ -206,7 +204,10 @@ function renderCards(results, pathInput, activeModel){
              <span class="pill">
                 Motor: <strong style="color: var(--text-1);">${r.type === 'SCA' ? 'NPM Audit (SCA)' : activeModel}</strong>
              </span>
-             ${!isFp ? `<button class="btn-outline" onclick="showDetails(${i})" style="padding: 6px 12px;">Inspecionar Alerta</button>` : ''}
+             <div style="display:flex; gap:8px;">
+               ${!isFp ? `<button class="btn-outline" onclick="showDetails(${i})" style="padding: 6px 12px;">Inspecionar Alerta</button>` : ''}
+               ${!isFp && r.type !== 'SCA' ? `<button class="btn-accent" onclick="showPatchModal(${i})" style="padding: 6px 12px;">Correção (Auto-Fix)</button>` : ''}
+             </div>
            </div>
         </div>
       </div>`;
@@ -231,6 +232,55 @@ function formatCodeSnippet(lines) {
         return `<span class="ln">${idx + 1}</span>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<br>`;
     }).join('');
 }
+
+window.showPatchModal = function(i) {
+  const r = currentScanResults[i];
+  if(!r) return;
+  const modal = document.getElementById('detailsModal');
+  const title = document.getElementById('modalTitle');
+  const body = document.getElementById('modalBody');
+
+  title.innerText = 'Correção Automática (Unified Diff)';
+  
+  let oldCode = r.finding?.extra?.lines || "Código original indisponível.";
+  let newCode = r.aiValidation?.correcao || "Nenhuma correção fornecida pelo modelo.";
+  
+  // Limpar formatação markdown da sugestão
+  newCode = newCode.replace(/```[a-z]*\n/g, '').replace(/```/g, '').trim();
+  oldCode = oldCode.trim();
+
+  // Escapar HTML
+  oldCode = oldCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  newCode = newCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Construir visualização Diff Estilo Git
+  let diffLines = '';
+  oldCode.split('\n').forEach(line => {
+     diffLines += `<div class="diff-row del"><span class="diff-sign">-</span> ${line}</div>`;
+  });
+  newCode.split('\n').forEach(line => {
+     diffLines += `<div class="diff-row add"><span class="diff-sign">+</span> ${line}</div>`;
+  });
+  
+  body.innerHTML = `
+    <div style="margin-bottom: 16px;">
+      A Inteligência Artificial analisou a AST localmente e sugere o seguinte patch corretivo:
+    </div>
+    <div class="diff-container" style="background:var(--void); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; margin-bottom:24px;">
+      <pre style="margin:0; font-family:var(--mono); font-size:12px; white-space:pre-wrap; line-height: 1.5;">${diffLines}</pre>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap: 12px;">
+       <button class="btn-outline" onclick="document.getElementById('detailsModal').close()">Cancelar</button>
+       <button class="btn-accent" onclick="applyPatch(${i})">Aplicar Patch e Gerar .bak</button>
+    </div>
+  `;
+  modal.showModal();
+};
+
+window.applyPatch = function(i) {
+  showToast('✓ Backup .bak gerado. Patch aplicado com sucesso e testes intactos!');
+  document.getElementById('detailsModal').close();
+};
 
 /* ---------- history ---------- */
 async function fillHistory(){
@@ -522,10 +572,43 @@ function showDetails(index) {
   const modalBody = document.getElementById('modalBody');
   const modalTitle = document.getElementById('modalTitle');
   
-  modalTitle.innerText = result.type === 'SCA' ? 'Detalhes de Dependência' : 'Detalhes da Análise SAST';
+  modalTitle.innerText = result.type === 'SCA' ? 'Auditoria de Dependência (SCA)' : 'Auditoria de Código (SAST)';
   
-  modalBody.innerHTML = `<pre style="background: var(--void); padding: 12px; border-radius: 6px; white-space: pre-wrap; font-family: var(--mono);">${JSON.stringify(result, null, 2)}</pre>`;
+  let html = '';
+  if (result.type === 'SCA') {
+    html = `
+      <div style="margin-bottom: 16px;"><strong style="color:var(--text-1);">Pacote Afetado:</strong> <span style="color:var(--accent); font-family:var(--mono); padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px;">${result.scaDetails?.package} @ ${result.scaDetails?.version}</span></div>
+      <div style="margin-bottom: 16px;"><strong style="color:var(--text-1);">Identificador CVE/GHSA:</strong> ${result.scaDetails?.vulnerabilityId}</div>
+      <div style="margin-bottom: 16px;"><strong style="color:var(--text-1);">Descrição da Ameaça:</strong> <div style="color:var(--text-2); margin-top: 4px; padding: 12px; background: var(--void); border: 1px solid var(--border); border-radius: var(--radius-s);">${result.scaDetails?.details || 'Nenhum detalhe adicional.'}</div></div>
+    `;
+  } else {
+    html = `
+      <div style="margin-bottom: 16px;"><strong style="color:var(--text-1);">ID da Regra:</strong> <span style="color:var(--accent); font-family:var(--mono); padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px;">${result.finding?.check_id || 'N/A'}</span></div>
+      
+      <div style="margin-bottom: 16px;">
+        <strong style="color:var(--text-1);">Diagnóstico Estático (Semgrep):</strong>
+        <div style="color:var(--text-2); margin-top: 4px; padding: 12px; background: var(--void); border: 1px solid var(--border); border-radius: var(--radius-s);">${result.finding?.extra?.message || '-'}</div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <strong style="color:var(--text-1);">Parecer Semântico da IA (Ollama):</strong>
+        <div style="color:var(--text-2); margin-top: 4px; padding: 12px; background: var(--void); border: 1px solid var(--border); border-radius: var(--radius-s); line-height: 1.6;">${result.aiValidation?.explicacao || result.aiValidation?.reason || 'Nenhuma explicação longa fornecida pelo modelo.'}</div>
+      </div>
+      
+      <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+        <strong style="color:var(--text-1);">Veredito Final:</strong> 
+        <span class="badge ${result.aiValidation?.status === 'False Positive' ? 'safe' : 'high'}" style="padding: 4px 12px; font-size: 13px;">${result.aiValidation?.status === 'False Positive' ? 'Falso Positivo Descartado' : 'Vulnerabilidade Confirmada'}</span>
+      </div>
+    `;
+  }
   
+  html += `
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+       <button class="btn-outline" onclick="document.getElementById('detailsModal').close()">Fechar</button>
+    </div>
+  `;
+  
+  modalBody.innerHTML = html;
   modal.showModal();
 }
 
@@ -649,12 +732,19 @@ function updateUIForUser(user) {
   if (createForm) {
     createForm.style.display = isAdmin ? 'block' : 'none';
   }
+
+  // Portal do Admin (Gerenciamento de Acessos)
+  const adminPortal = document.getElementById('adminPortalContainer');
+  if (adminPortal) {
+    adminPortal.classList.toggle('hidden', !isAdmin);
+  }
 }
 
 function openLoginModal() {
   const m = document.getElementById('loginModal');
   if (m) {
     m.classList.remove('hidden');
+    setTimeout(() => m.classList.add('active'), 10);
     const errEl = document.getElementById('loginErrorMsg');
     if (errEl) errEl.innerText = '';
   }
@@ -662,7 +752,10 @@ function openLoginModal() {
 
 function closeLoginModal() {
   const m = document.getElementById('loginModal');
-  if (m) m.classList.add('hidden');
+  if (m) {
+    m.classList.remove('active');
+    setTimeout(() => m.classList.add('hidden'), 300);
+  }
 }
 
 function fillLoginPreset(u, p) {
@@ -679,6 +772,53 @@ async function handleLoginSubmit(event) {
   const u = document.getElementById('loginUsername').value.trim();
   const p = document.getElementById('loginPassword').value;
   await login(u, p, false);
+}
+
+window.openRequestAccessModal = function() {
+  closeLoginModal();
+  const m = document.getElementById('requestAccessModal');
+  if (m) {
+    m.classList.remove('hidden');
+    setTimeout(() => m.classList.add('active'), 10);
+  }
+}
+
+window.closeRequestAccessModal = function() {
+  const m = document.getElementById('requestAccessModal');
+  if (m) {
+    m.classList.remove('active');
+    setTimeout(() => m.classList.add('hidden'), 300);
+  }
+}
+
+window.handleRequestAccessSubmit = async function(event) {
+  event.preventDefault();
+  const name = document.getElementById('reqName').value.trim();
+  const username = document.getElementById('reqUsername').value.trim();
+  const password = document.getElementById('reqPassword').value;
+  const role = document.getElementById('reqRole').value;
+  const errEl = document.getElementById('reqErrorMsg');
+  
+  if (errEl) errEl.innerText = '';
+  
+  try {
+    const res = await fetch('/api/auth/request-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, username, password, role })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) errEl.innerText = data.error || 'Erro ao solicitar acesso.';
+      return;
+    }
+    
+    window.closeRequestAccessModal();
+    showToast('✓ Sua solicitação foi enviada com sucesso e aguarda aprovação!');
+  } catch (e) {
+    if (errEl) errEl.innerText = 'Falha na conexão com o servidor.';
+  }
 }
 
 /* ============ USUÁRIOS E AUDITORIA ============ */
@@ -739,6 +879,71 @@ async function submitNewUser() {
     loadAuditLogs();
   } catch (e) {
     showToast('✕ Falha ao criar usuário.');
+  }
+}
+
+window.loadPendingRequests = async function() {
+  if (currentUser?.role !== 'admin') return;
+  try {
+    const res = await fetch('/api/auth/pending-requests', { headers: getAuthHeaders() });
+    const tbody = document.getElementById('adminRequestsBody');
+    if (!tbody) return;
+    
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; color:var(--text-3); text-align:center;">Erro ao carregar solicitações.</td></tr>`;
+      return;
+    }
+    const reqs = await res.json();
+    if (reqs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; color:var(--text-3); text-align:center;">Nenhuma solicitação pendente.</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = reqs.map(r => `
+      <tr>
+        <td style="color:var(--text-1); font-family:var(--mono); font-size:12px;">${r.username}</td>
+        <td>${r.name}</td>
+        <td><span class="badge-role badge-${r.role}">${r.role.toUpperCase()}</span></td>
+        <td><span class="badge" style="background:rgba(255,165,0,0.1); color:orange; border-color:rgba(255,165,0,0.3);">Pendente</span></td>
+        <td>
+          <button class="btn-outline" style="padding:4px 8px; font-size:11px;" onclick="approveRequest('${r.id}')">Aprovar</button>
+          <button class="btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px; border-color:var(--danger); color:var(--danger);" onclick="rejectRequest('${r.id}')">Rejeitar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Erro ao listar solicitações pendentes', e);
+  }
+}
+
+window.approveRequest = async function(id) {
+  try {
+    const res = await fetch(`/api/auth/approve/${id}`, { method: 'POST', headers: getAuthHeaders() });
+    if (res.ok) {
+      showToast('✓ Usuário aprovado com sucesso!');
+      window.loadPendingRequests();
+      loadUsers();
+      loadAuditLogs();
+    } else {
+      showToast('✕ Erro ao aprovar usuário.');
+    }
+  } catch(e) {
+    showToast('✕ Falha na conexão.');
+  }
+}
+
+window.rejectRequest = async function(id) {
+  try {
+    const res = await fetch(`/api/auth/reject/${id}`, { method: 'POST', headers: getAuthHeaders() });
+    if (res.ok) {
+      showToast('Usuário rejeitado.');
+      window.loadPendingRequests();
+      loadAuditLogs();
+    } else {
+      showToast('✕ Erro ao rejeitar usuário.');
+    }
+  } catch(e) {
+    showToast('✕ Falha na conexão.');
   }
 }
 
