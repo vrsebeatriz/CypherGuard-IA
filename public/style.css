@@ -265,6 +265,20 @@ input, select, textarea { font-family: inherit; color: inherit; outline: none; }
   box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 
+.btn-danger {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; font-weight: 600; font-size: 13px; font-family: var(--mono);
+  background: transparent; color: var(--danger);
+  border: 1px solid var(--danger); border-radius: var(--radius-s);
+  cursor: pointer; transition: all var(--transition-fast);
+}
+.btn-danger:hover {
+  background: var(--danger); color: #fff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+.btn-danger:active { transform: scale(0.98); }
+
 /* ============ LAYOUT: EDITORIAL SPLIT (HERO) ============ */
 .editorial-hero {
   min-height: 100dvh;

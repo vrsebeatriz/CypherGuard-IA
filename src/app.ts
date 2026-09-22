@@ -237,6 +237,54 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
+  app.delete('/api/auth/users/:id', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const adminUsername = (req as any).user?.username || 'admin';
+      const ok = authService.deleteUser(id, adminUsername);
+      if (!ok) return res.status(404).json({ error: 'Usuário não encontrado.' });
+      res.json({ success: true, message: 'Usuário excluído.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/auth/users/:id/role', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const newRole = req.body.role;
+      const adminUsername = (req as any).user?.username || 'admin';
+      
+      if (!['admin', 'analyst', 'auditor'].includes(newRole)) {
+        return res.status(400).json({ error: 'Role inválida.' });
+      }
+
+      const ok = authService.updateUserRole(id, newRole, adminUsername);
+      if (!ok) return res.status(404).json({ error: 'Usuário não encontrado.' });
+      res.json({ success: true, message: 'Role atualizada.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/auth/users/:id/password', requireRole('admin'), (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const newPasswordRaw = req.body.password;
+      const adminUsername = (req as any).user?.username || 'admin';
+      
+      if (!newPasswordRaw || newPasswordRaw.length < 6) {
+        return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      }
+
+      const ok = authService.updateUserPassword(id, newPasswordRaw, adminUsername);
+      if (!ok) return res.status(404).json({ error: 'Usuário não encontrado.' });
+      res.json({ success: true, message: 'Senha atualizada.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // --- TRILHA DE AUDITORIA (AUDIT LOG) ---
   app.get('/api/audit', requireRole('admin', 'auditor'), (req, res) => {
     try {

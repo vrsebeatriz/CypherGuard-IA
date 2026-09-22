@@ -30,8 +30,8 @@
       </div>
       <div style="display:flex; align-items:center; gap:16px; margin-left: 16px; padding-left: 24px; border-left: 1px solid var(--border-hi);">
         <button style="font-size:13px; font-weight:600; color:var(--text-2);" onclick="openLoginModal()">Entrar (RBAC)</button>
-        <button class="btn-primary" onclick="goToApp()">
-          Dashboard
+        <button class="btn-primary" onclick="openLoginModal()">
+          Acessar Dashboard
           <div class="btn-primary-icon"><i class="ph-light ph-arrow-up-right"></i></div>
         </button>
       </div>
@@ -58,7 +58,7 @@
         </p>
         
         <div class="hero-actions">
-          <button class="btn-primary" style="padding: 6px 6px 6px 24px; font-size: 15px;" onclick="goToApp()">
+          <button class="btn-primary" style="padding: 6px 6px 6px 24px; font-size: 15px;" onclick="openLoginModal()">
             Acessar Auditoria
             <div class="btn-primary-icon" style="width: 40px; height: 40px;"><i class="ph-light ph-arrow-right"></i></div>
           </button>
@@ -466,7 +466,7 @@
                 <div class="data-table-wrap">
                   <table class="data-table">
                     <thead>
-                      <tr><th>Usuário</th><th>Perfil</th></tr>
+                      <tr><th>Usuário</th><th>Nome Completo</th><th>Perfil</th><th>Último Login</th><th style="text-align:right;">Ações</th></tr>
                     </thead>
                     <tbody id="userListBody"></tbody>
                   </table>
@@ -656,6 +656,51 @@
         <div id="reqErrorMsg" style="color:var(--danger); font-size:12px; margin-bottom:16px; min-height:16px;"></div>
         <button type="submit" class="btn-primary" style="width:100%; height:48px;">Enviar Solicitação</button>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- =================== EDIT USER MODAL =================== -->
+<div id="editUserModal" class="modal-overlay hidden">
+  <div class="bezel-shell modal-content" style="max-width: 400px;">
+    <div class="bezel-core">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h3 id="editUserTitle" style="font-family:var(--display); font-size:18px; color:var(--text-1);">Ação</h3>
+        <button onclick="closeEditUserModal()" style="font-size:20px; color:var(--text-3);"><i class="ph-light ph-x"></i></button>
+      </div>
+      <p id="editUserDesc" style="font-size:13px; color:var(--text-2); margin-bottom:20px; line-height:1.5;"></p>
+      
+      <!-- Role Form -->
+      <div id="editRoleForm" class="hidden">
+        <div class="form-group">
+          <label>Novo Perfil</label>
+          <select id="editRoleSelect" class="form-input">
+            <option value="analyst">Analista de Segurança</option>
+            <option value="auditor">Auditor de Conformidade</option>
+            <option value="admin">Administrador do Sistema</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Password Form -->
+      <div id="editPasswordForm" class="hidden">
+        <div class="form-group">
+          <label>Nova Senha</label>
+          <input id="editPasswordInput" type="password" class="form-input" placeholder="Mínimo 6 caracteres">
+        </div>
+      </div>
+
+      <!-- Delete Form -->
+      <div id="editDeleteForm" class="hidden">
+        <div style="border-left:3px solid var(--danger); background:rgba(239,68,68,0.1); padding:12px; border-radius:4px; color:var(--danger); font-size:12px; font-family:var(--mono);">
+          <strong>Atenção:</strong> Esta ação exclui a conta permanentemente e revoga todas as sessões ativas do usuário.
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:24px;">
+        <button onclick="closeEditUserModal()" class="btn-outline" style="flex:1; height:40px; justify-content:center;">Cancelar</button>
+        <button id="editUserConfirmBtn" class="btn-accent" style="flex:1; height:40px;">Confirmar</button>
+      </div>
     </div>
   </div>
 </div>

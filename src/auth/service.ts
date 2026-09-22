@@ -205,6 +205,65 @@ export class AuthService {
     return true;
   }
 
+  public deleteUser(userId: string, adminUsername: string): boolean {
+    let users = this.readUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+
+    users = users.filter(u => u.id !== userId);
+    this.saveUsers(users);
+    this.logAudit(adminUsername, 'admin', `Usuário excluído`, `Admin excluiu permanentemente a conta de ${user.username} (${user.role})`);
+    
+    // Invalidate any active sessions for the deleted user
+    for (const [token, session] of this.sessions.entries()) {
+      if (session.username === user.username) {
+        this.sessions.delete(token);
+      }
+    }
+    return true;
+  }
+
+  public updateUserRole(userId: string, newRole: UserRole, adminUsername: string): boolean {
+    const users = this.readUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+
+    const oldRole = user.role;
+    user.role = newRole;
+    this.saveUsers(users);
+    this.logAudit(adminUsername, 'admin', `Perfil atualizado`, `Admin mudou o perfil de ${user.username} de ${oldRole} para ${newRole}`);
+    
+    // Force session expiration if role changed
+    for (const [token, session] of this.sessions.entries()) {
+      if (session.username === user.username) {
+        this.sessions.delete(token);
+      }
+    }
+    return true;
+  }
+
+  public updateUserPassword(userId: string, newPasswordRaw: string, adminUsername: string): boolean {
+    const users = this.readUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+
+    const newSalt = crypto.randomBytes(16).toString('hex');
+    user.salt = newSalt;
+    user.passwordHash = this.hashPassword(newPasswordRaw, newSalt);
+    this.saveUsers(users);
+    
+    const targetInfo = user.username === adminUsername ? 'própria senha' : `senha de ${user.username}`;
+    this.logAudit(adminUsername, 'admin', `Senha alterada`, `Admin alterou a ${targetInfo}`);
+    
+    // Force relogin
+    for (const [token, session] of this.sessions.entries()) {
+      if (session.username === user.username) {
+        this.sessions.delete(token);
+      }
+    }
+    return true;
+  }
+
   public logout(token: string) {
     const session = this.sessions.get(token);
     if (session) {

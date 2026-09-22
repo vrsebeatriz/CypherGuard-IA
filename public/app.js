@@ -1,49 +1,49 @@
 const urlParams = new URLSearchParams(window.location.search);
 let CG_TOKEN = urlParams.get('token') || '';
 if (!CG_TOKEN) {
-    const metaToken = document.querySelector('meta[name="cg-token"]');
-    if (metaToken) {
-        CG_TOKEN = metaToken.getAttribute('content') || '';
-    }
+  const metaToken = document.querySelector('meta[name="cg-token"]');
+  if (metaToken) {
+    CG_TOKEN = metaToken.getAttribute('content') || '';
+  }
 }
 
 let currentUser = null;
 
 function getAuthHeaders() {
-    const h = {
-        'Content-Type': 'application/json',
-        'X-CypherGuard-Token': CG_TOKEN
-    };
-    const token = localStorage.getItem('cg_auth_token');
-    if (token) {
-        h['Authorization'] = `Bearer ${token}`;
-        h['X-CypherGuard-Auth-Token'] = token;
-    }
-    return h;
+  const h = {
+    'Content-Type': 'application/json',
+    'X-CypherGuard-Token': CG_TOKEN
+  };
+  const token = localStorage.getItem('cg_auth_token');
+  if (token) {
+    h['Authorization'] = `Bearer ${token}`;
+    h['X-CypherGuard-Auth-Token'] = token;
+  }
+  return h;
 }
 
 const headers = getAuthHeaders();
 
 
 /* ---------- nav between landing / app ---------- */
-function goToApp(){
+function goToApp() {
   document.getElementById('page-landing').classList.add('hidden');
   document.getElementById('page-app').classList.remove('hidden');
-  window.scrollTo(0,0);
-  if(!window.__histFilled){fillHistory();window.__histFilled=true;}
-  if(!window.__settingsInit){loadSettings();window.__settingsInit=true;}
+  window.scrollTo(0, 0);
+  if (!window.__histFilled) { fillHistory(); window.__histFilled = true; }
+  if (!window.__settingsInit) { loadSettings(); window.__settingsInit = true; }
 }
-function goToLanding(){
+function goToLanding() {
   document.getElementById('page-app').classList.add('hidden');
   document.getElementById('page-landing').classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ---------- tabs ---------- */
-function switchTab(name){
-  document.querySelectorAll('.sb-item').forEach(el=>el.classList.toggle('active', el.dataset.tab===name));
-  document.querySelectorAll('.tab-panel').forEach(el=>el.classList.remove('active'));
-  const panel = document.getElementById('tab-'+name);
+function switchTab(name) {
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.toggle('active', el.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+  const panel = document.getElementById('tab-' + name);
   if (panel) panel.classList.add('active');
   if (name === 'history') fillHistory();
   if (name === 'access') { loadUsers(); loadAuditLogs(); }
@@ -54,36 +54,36 @@ function switchTab(name){
 /* ---------- API Logic ---------- */
 let currentScanId = null;
 
-async function runScan(){
+async function runScan() {
   if (currentUser && currentUser.role === 'auditor') {
     showToast('✕ Modo Auditor: Execução de novos scans bloqueada.');
     return;
   }
 
-  const btn=document.getElementById('runBtn');
+  const btn = document.getElementById('runBtn');
   const pathInput = document.getElementById('pathInput').value.trim();
-  if(!pathInput) {
+  if (!pathInput) {
     showToast('✕ Por favor, informe um caminho válido.');
     return;
   }
 
-  btn.disabled=true; btn.innerText='Executando…';
-  
+  btn.disabled = true; btn.innerText = 'Executando…';
+
   const activeModel = document.getElementById('statusText').innerText.split('·')[1]?.trim() || 'IA';
-  
-  document.getElementById('emptyState').style.display='none';
+
+  document.getElementById('emptyState').style.display = 'none';
   document.getElementById('resultsWrap').classList.remove('active');
-  document.getElementById('cardsContainer').innerHTML='';
-  
-  const loading=document.getElementById('loadingState');
+  document.getElementById('cardsContainer').innerHTML = '';
+
+  const loading = document.getElementById('loadingState');
   loading.classList.add('active');
-  loading.scrollIntoView({behavior:'smooth', block:'center'});
+  loading.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   try {
     const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ targetPath: pathInput })
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ targetPath: pathInput })
     });
 
     const data = await response.json();
@@ -92,48 +92,48 @@ async function runScan(){
     currentScanId = data.id;
 
     setTimeout(() => {
-        loading.classList.remove('active');
-        document.getElementById('resultsWrap').classList.add('active');
-        renderCards(data.results, pathInput, activeModel);
-        btn.disabled=false; btn.innerText='▶  Executar Auditoria';
-        fillHistory(); // Refresh history
-        loadAuditLogs(); // Refresh audit logs
+      loading.classList.remove('active');
+      document.getElementById('resultsWrap').classList.add('active');
+      renderCards(data.results, pathInput, activeModel);
+      btn.disabled = false; btn.innerText = '▶  Executar Auditoria';
+      fillHistory(); // Refresh history
+      loadAuditLogs(); // Refresh audit logs
     }, 800); // Visual delay for elegance
 
-  } catch(e) {
+  } catch (e) {
     showToast('✕ Erro: ' + e.message);
-    btn.disabled=false; btn.innerText='▶  Executar Auditoria';
+    btn.disabled = false; btn.innerText = '▶  Executar Auditoria';
     loading.classList.remove('active');
   }
 }
 
-function renderCards(results, pathInput, activeModel){
+function renderCards(results, pathInput, activeModel) {
   const container = document.getElementById('cardsContainer');
   container.innerHTML = '';
-  
-  if(!results || results.length === 0) {
-      document.getElementById('resultsTitle').innerText = `Nenhum alerta encontrado em ${pathInput}`;
-      document.getElementById('resultsSummary').innerHTML = `<span class="chip chip-fp">Código Seguro</span>`;
-      return;
+
+  if (!results || results.length === 0) {
+    document.getElementById('resultsTitle').innerText = `Nenhum alerta encontrado em ${pathInput}`;
+    document.getElementById('resultsSummary').innerHTML = `<span class="chip chip-fp">Código Seguro</span>`;
+    return;
   }
 
   document.getElementById('resultsTitle').innerText = `${results.length} alertas analisados · ${pathInput}`;
-  
+
   window.currentScanResults = results; // Save for modal
 
-  let high=0, med=0, low=0, fp=0;
+  let high = 0, med = 0, low = 0, fp = 0;
   results.forEach(r => {
-      if(r.type === 'SCA') {
-        const scaSev = (r.scaDetails?.severity || 'LOW').toUpperCase();
-        if(scaSev === 'CRITICAL' || scaSev === 'HIGH') high++;
-        else if(scaSev === 'MODERATE' || scaSev === 'MEDIUM') med++;
-        else low++;
-      } else {
-        if(r.aiValidation?.status === 'False Positive') fp++;
-        else if(r.finding?.extra?.severity === 'ERROR') high++;
-        else if(r.finding?.extra?.severity === 'WARNING') med++;
-        else low++;
-      }
+    if (r.type === 'SCA') {
+      const scaSev = (r.scaDetails?.severity || 'LOW').toUpperCase();
+      if (scaSev === 'CRITICAL' || scaSev === 'HIGH') high++;
+      else if (scaSev === 'MODERATE' || scaSev === 'MEDIUM') med++;
+      else low++;
+    } else {
+      if (r.aiValidation?.status === 'False Positive') fp++;
+      else if (r.finding?.extra?.severity === 'ERROR') high++;
+      else if (r.finding?.extra?.severity === 'WARNING') med++;
+      else low++;
+    }
   });
 
   document.getElementById('resultsSummary').innerHTML = `
@@ -144,11 +144,11 @@ function renderCards(results, pathInput, activeModel){
   `;
 
   // Motion choreography (max ~400ms delay total to follow 1/3 rule stagger limits)
-  const baseDelay = 60; 
+  const baseDelay = 60;
 
-  results.forEach((r, i)=>{
-    const card=document.createElement('div');
-    
+  results.forEach((r, i) => {
+    const card = document.createElement('div');
+
     let isFp = false;
     let severity = 'Baixa';
     let checkId = '';
@@ -158,21 +158,21 @@ function renderCards(results, pathInput, activeModel){
     let explicacaoText = '';
 
     if (r.type === 'SCA') {
-       const scaSev = (r.scaDetails?.severity || 'LOW').toUpperCase();
-       severity = (scaSev === 'HIGH' || scaSev === 'CRITICAL') ? 'Alta' : ((scaSev === 'MODERATE' || scaSev === 'MEDIUM') ? 'Média' : 'Baixa');
-       checkId = r.scaDetails?.vulnerabilityId || 'SCA-VULN';
-       filePath = `${r.scaDetails?.package} @ ${r.scaDetails?.version}`;
-       codeSnippet = r.scaDetails?.summary || 'Nenhuma descrição resumida fornecida pela auditoria.';
-       reasonText = r.scaDetails?.details || 'Vulnerabilidade identificada na árvore de dependências do NPM.';
-       explicacaoText = 'Recomendação: Atualize o pacote vulnerável para a versão mais recente com patch de segurança.';
+      const scaSev = (r.scaDetails?.severity || 'LOW').toUpperCase();
+      severity = (scaSev === 'HIGH' || scaSev === 'CRITICAL') ? 'Alta' : ((scaSev === 'MODERATE' || scaSev === 'MEDIUM') ? 'Média' : 'Baixa');
+      checkId = r.scaDetails?.vulnerabilityId || 'SCA-VULN';
+      filePath = `${r.scaDetails?.package} @ ${r.scaDetails?.version}`;
+      codeSnippet = r.scaDetails?.summary || 'Nenhuma descrição resumida fornecida pela auditoria.';
+      reasonText = r.scaDetails?.details || 'Vulnerabilidade identificada na árvore de dependências do NPM.';
+      explicacaoText = 'Recomendação: Atualize o pacote vulnerável para a versão mais recente com patch de segurança.';
     } else {
-       isFp = r.aiValidation?.status === 'False Positive';
-       severity = r.finding?.extra?.severity === 'ERROR' ? 'Alta' : (r.finding?.extra?.severity === 'WARNING' ? 'Média' : 'Baixa');
-       checkId = r.finding?.check_id || 'Unknown';
-       filePath = `${r.finding?.path}:${r.finding?.start?.line}`;
-       codeSnippet = r.finding?.extra?.lines || '';
-       reasonText = r.aiValidation?.reason || 'Sem justificativa fornecida.';
-       explicacaoText = r.aiValidation?.explicacao || 'Nenhuma explicação estendida da IA disponível.';
+      isFp = r.aiValidation?.status === 'False Positive';
+      severity = r.finding?.extra?.severity === 'ERROR' ? 'Alta' : (r.finding?.extra?.severity === 'WARNING' ? 'Média' : 'Baixa');
+      checkId = r.finding?.check_id || 'Unknown';
+      filePath = `${r.finding?.path}:${r.finding?.start?.line}`;
+      codeSnippet = r.finding?.extra?.lines || '';
+      reasonText = r.aiValidation?.reason || 'Sem justificativa fornecida.';
+      explicacaoText = r.aiValidation?.explicacao || 'Nenhuma explicação estendida da IA disponível.';
     }
 
     let cardClass = '';
@@ -180,8 +180,8 @@ function renderCards(results, pathInput, activeModel){
     else if (severity === 'Alta') cardClass = ' card-high';
     else if (severity === 'Média') cardClass = ' card-med';
 
-    card.className='vuln-card bezel-shell sm' + cardClass;
-    card.innerHTML=`
+    card.className = 'vuln-card bezel-shell sm' + cardClass;
+    card.innerHTML = `
       <div class="bezel-core">
         <div class="vuln-header">
           <div class="vuln-title">${checkId}</div>
@@ -189,10 +189,10 @@ function renderCards(results, pathInput, activeModel){
         </div>
         <div style="font-family:var(--mono); font-size:11px; color:var(--text-3); margin-bottom:12px;">${filePath}</div>
         
-        ${r.type === 'SCA' 
-          ? `<div class="code-block">${codeSnippet}</div>`
-          : `<div class="code-block">${formatCodeSnippet(codeSnippet)}</div>`
-        }
+        ${r.type === 'SCA'
+        ? `<div class="code-block">${codeSnippet}</div>`
+        : `<div class="code-block">${formatCodeSnippet(codeSnippet)}</div>`
+      }
         
         <div style="margin-top:16px;">
            <div style="font-size: 13px; color: var(--text-2); margin-bottom: 6px; line-height: 1.5;">
@@ -211,40 +211,40 @@ function renderCards(results, pathInput, activeModel){
            </div>
         </div>
       </div>`;
-    
+
     container.appendChild(card);
-    
+
     const staggerDelay = Math.min(i * baseDelay, 400); // Capped stagger
 
-    setTimeout(()=>{
+    setTimeout(() => {
       card.classList.add('show');
     }, staggerDelay);
 
-    setTimeout(()=>{
+    setTimeout(() => {
       card.classList.remove('scanning');
     }, staggerDelay + 500);
   });
 }
 
 function formatCodeSnippet(lines) {
-    if (!lines) return '';
-    return lines.split('\n').map((line, idx) => {
-        return `<span class="ln">${idx + 1}</span>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<br>`;
-    }).join('');
+  if (!lines) return '';
+  return lines.split('\n').map((line, idx) => {
+    return `<span class="ln">${idx + 1}</span>${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<br>`;
+  }).join('');
 }
 
-window.showPatchModal = function(i) {
+window.showPatchModal = function (i) {
   const r = currentScanResults[i];
-  if(!r) return;
+  if (!r) return;
   const modal = document.getElementById('detailsModal');
   const title = document.getElementById('modalTitle');
   const body = document.getElementById('modalBody');
 
   title.innerText = 'Correção Automática (Unified Diff)';
-  
+
   let oldCode = r.finding?.extra?.lines || "Código original indisponível.";
   let newCode = r.aiValidation?.correcao || "Nenhuma correção fornecida pelo modelo.";
-  
+
   // Limpar formatação markdown da sugestão
   newCode = newCode.replace(/```[a-z]*\n/g, '').replace(/```/g, '').trim();
   oldCode = oldCode.trim();
@@ -252,16 +252,16 @@ window.showPatchModal = function(i) {
   // Escapar HTML
   oldCode = oldCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   newCode = newCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  
+
   // Construir visualização Diff Estilo Git
   let diffLines = '';
   oldCode.split('\n').forEach(line => {
-     diffLines += `<div class="diff-row del"><span class="diff-sign">-</span> ${line}</div>`;
+    diffLines += `<div class="diff-row del"><span class="diff-sign">-</span> ${line}</div>`;
   });
   newCode.split('\n').forEach(line => {
-     diffLines += `<div class="diff-row add"><span class="diff-sign">+</span> ${line}</div>`;
+    diffLines += `<div class="diff-row add"><span class="diff-sign">+</span> ${line}</div>`;
   });
-  
+
   body.innerHTML = `
     <div style="margin-bottom: 16px;">
       A Inteligência Artificial analisou a AST localmente e sugere o seguinte patch corretivo:
@@ -277,51 +277,51 @@ window.showPatchModal = function(i) {
   modal.showModal();
 };
 
-window.applyPatch = function(i) {
+window.applyPatch = function (i) {
   showToast('✓ Backup .bak gerado. Patch aplicado com sucesso e testes intactos!');
   document.getElementById('detailsModal').close();
 };
 
 /* ---------- history ---------- */
-async function fillHistory(){
+async function fillHistory() {
+  try {
+    // Carrega KPIs agregados
     try {
-        // Carrega KPIs agregados
-        try {
-            const statsRes = await fetch('/api/history/stats', { headers: getAuthHeaders() });
-            if (statsRes.ok) {
-                const stats = await statsRes.json();
-                const sEl = document.getElementById('kpiTotalScans');
-                const aEl = document.getElementById('kpiTotalAlerts');
-                const mEl = document.getElementById('kpiUniqueModels');
-                if (sEl) sEl.innerText = stats.totalScans || 0;
-                if (aEl) aEl.innerText = stats.totalAlerts || 0;
-                if (mEl) mEl.innerText = stats.uniqueModels || 0;
-            }
-        } catch(e) {
-            console.warn('Falha ao carregar KPIs', e);
-        }
+      const statsRes = await fetch('/api/history/stats', { headers: getAuthHeaders() });
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        const sEl = document.getElementById('kpiTotalScans');
+        const aEl = document.getElementById('kpiTotalAlerts');
+        const mEl = document.getElementById('kpiUniqueModels');
+        if (sEl) sEl.innerText = stats.totalScans || 0;
+        if (aEl) aEl.innerText = stats.totalAlerts || 0;
+        if (mEl) mEl.innerText = stats.uniqueModels || 0;
+      }
+    } catch (e) {
+      console.warn('Falha ao carregar KPIs', e);
+    }
 
-        const response = await fetch('/api/history', { headers: getAuthHeaders() });
-        const data = await response.json();
-        
-        const body=document.getElementById('histBody');
-        if(Array.isArray(data) && data.length > 0) {
-            const countEl = document.getElementById('histCount');
-            if (countEl) countEl.innerText = `${data.length} auditorias registradas`;
-            
-            const isAdmin = currentUser && currentUser.role === 'admin';
-            body.innerHTML = data.map(h => {
-                const shortPath = h.targetPath ? h.targetPath.split('/').slice(-2).join('/') : '-';
-                const n = h.totalAlerts || 0;
-                const badgeClass = n === 0 ? 'zero' : n >= 5 ? 'high' : n >= 2 ? 'medium' : 'low';
-                const model = (h.modelUsed || 'local').replace(':', ' ');
-                const ts = new Date(h.timestamp);
-                const tsDate = ts.toLocaleDateString('pt-BR');
-                const tsTime = ts.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-                return `
+    const response = await fetch('/api/history', { headers: getAuthHeaders() });
+    const data = await response.json();
+
+    const body = document.getElementById('histBody');
+    if (Array.isArray(data) && data.length > 0) {
+      const countEl = document.getElementById('histCount');
+      if (countEl) countEl.innerText = `${data.length} auditorias registradas`;
+
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      body.innerHTML = data.map(h => {
+        const shortPath = h.targetPath ? h.targetPath.split('/').slice(-2).join('/') : '-';
+        const n = h.totalAlerts || 0;
+        const badgeClass = n === 0 ? 'zero' : n >= 5 ? 'high' : n >= 2 ? 'medium' : 'low';
+        const model = (h.modelUsed || 'local').replace(':', ' ');
+        const ts = new Date(h.timestamp);
+        const tsDate = ts.toLocaleDateString('pt-BR');
+        const tsTime = ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return `
                 <tr>
                     <td>
-                      <span style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.04em;">${h.id.substring(0,8)}</span>
+                      <span style="font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:0.04em;">${h.id.substring(0, 8)}</span>
                     </td>
                     <td>
                       <div style="font-size:12px; color:var(--text-1);">${tsDate}</div>
@@ -349,73 +349,73 @@ async function fillHistory(){
                         </div>
                     </td>
                 </tr>`;
-            }).join('');
-        } else {
-            body.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:24px; color:var(--text-3);">Nenhuma auditoria registrada até o momento.</td></tr>';
-            const countEl = document.getElementById('histCount');
-            if (countEl) countEl.innerText = '0 auditorias';
-        }
-    } catch(e) {
-        console.error('Failed to load history', e);
+      }).join('');
+    } else {
+      body.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:24px; color:var(--text-3);">Nenhuma auditoria registrada até o momento.</td></tr>';
+      const countEl = document.getElementById('histCount');
+      if (countEl) countEl.innerText = '0 auditorias';
     }
+  } catch (e) {
+    console.error('Failed to load history', e);
+  }
 }
 
-async function loadScanIntoView(id){
-    try {
-        showToast('Carregando relatório da auditoria...');
-        const res = await fetch(`/api/history/${id}`, { headers: getAuthHeaders() });
-        if (!res.ok) {
-            showToast('✕ Não foi possível carregar os detalhes do scan.');
-            return;
-        }
-        const data = await res.json();
-        currentScanId = id;
-        
-        const pathInput = document.getElementById('pathInput');
-        if (pathInput && data.entry && data.entry.targetPath) {
-            pathInput.value = data.entry.targetPath;
-        }
-
-        document.getElementById('emptyState').style.display='none';
-        document.getElementById('resultsWrap').classList.add('active');
-
-        renderCards(data.results, data.entry?.targetPath || './src', data.entry?.modelUsed || 'Audit');
-
-        const titleEl = document.getElementById('resultsTitle');
-        if (titleEl) {
-            titleEl.innerText = `${data.results.length} alertas carregados do histórico (${id.substring(0,8)})`;
-        }
-
-        switchTab('scan');
-        window.scrollTo(0, 260);
-        showToast(`✓ Auditoria ${id.substring(0,8)} carregada no painel!`);
-    } catch(e) {
-        console.error('Erro ao carregar histórico no painel', e);
-        showToast('✕ Erro ao abrir auditoria.');
+async function loadScanIntoView(id) {
+  try {
+    showToast('Carregando relatório da auditoria...');
+    const res = await fetch(`/api/history/${id}`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      showToast('✕ Não foi possível carregar os detalhes do scan.');
+      return;
     }
+    const data = await res.json();
+    currentScanId = id;
+
+    const pathInput = document.getElementById('pathInput');
+    if (pathInput && data.entry && data.entry.targetPath) {
+      pathInput.value = data.entry.targetPath;
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsWrap').classList.add('active');
+
+    renderCards(data.results, data.entry?.targetPath || './src', data.entry?.modelUsed || 'Audit');
+
+    const titleEl = document.getElementById('resultsTitle');
+    if (titleEl) {
+      titleEl.innerText = `${data.results.length} alertas carregados do histórico (${id.substring(0, 8)})`;
+    }
+
+    switchTab('scan');
+    window.scrollTo(0, 260);
+    showToast(`✓ Auditoria ${id.substring(0, 8)} carregada no painel!`);
+  } catch (e) {
+    console.error('Erro ao carregar histórico no painel', e);
+    showToast('✕ Erro ao abrir auditoria.');
+  }
 }
 
-async function deleteHistoryScan(id){
-    if (!confirm(`Deseja realmente remover o scan ${id.substring(0,8)} do histórico?`)) return;
-    try {
-        const res = await fetch(`/api/history/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        if (res.ok) {
-            showToast('✓ Registro removido com sucesso.');
-            fillHistory();
-            loadAuditLogs();
-        } else {
-            const data = await res.json();
-            showToast(`✕ ${data.error || 'Erro ao remover scan'}`);
-        }
-    } catch(e) {
-        showToast('✕ Erro de conexão.');
+async function deleteHistoryScan(id) {
+  if (!confirm(`Deseja realmente remover o scan ${id.substring(0, 8)} do histórico?`)) return;
+  try {
+    const res = await fetch(`/api/history/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      showToast('✓ Registro removido com sucesso.');
+      fillHistory();
+      loadAuditLogs();
+    } else {
+      const data = await res.json();
+      showToast(`✕ ${data.error || 'Erro ao remover scan'}`);
     }
+  } catch (e) {
+    showToast('✕ Erro de conexão.');
+  }
 }
 
-function downloadSarif(id){
+function downloadSarif(id) {
   window.location.href = `/api/export/sarif?id=${id}&token=${CG_TOKEN}`;
   showToast('⇩ Download SARIF iniciado');
 }
@@ -430,58 +430,58 @@ const modelInfos = {
 };
 
 async function loadSettings() {
-    try {
-        const res = await fetch('/api/config', { headers: getAuthHeaders() });
-        const data = await res.json();
-        if (data) {
-            const modelSelect = document.getElementById('modelSelect');
-            if (modelSelect) {
-                modelSelect.innerHTML = availableModels.map(m => `<option value="${m}">${m}</option>`).join('');
-                if (data.model && availableModels.includes(data.model)) {
-                    modelSelect.value = data.model;
-                } else if (data.model) {
-                    modelSelect.innerHTML += `<option value="${data.model}">${data.model} (Custom)</option>`;
-                    modelSelect.value = data.model;
-                }
-            }
-            
-            onModelChange();
-            
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-            if (statusDot) statusDot.className = 'dot-live';
-            if (statusText) statusText.innerText = `Ollama · ${data.model || 'qwen2.5:7b'}`;
+  try {
+    const res = await fetch('/api/config', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (data) {
+      const modelSelect = document.getElementById('modelSelect');
+      if (modelSelect) {
+        modelSelect.innerHTML = availableModels.map(m => `<option value="${m}">${m}</option>`).join('');
+        if (data.model && availableModels.includes(data.model)) {
+          modelSelect.value = data.model;
+        } else if (data.model) {
+          modelSelect.innerHTML += `<option value="${data.model}">${data.model} (Custom)</option>`;
+          modelSelect.value = data.model;
         }
-    } catch(e) {
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        if (statusDot) statusDot.className = 'dot-offline';
-        if (statusText) statusText.innerText = 'Ollama · Offline';
+      }
+
+      onModelChange();
+
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      if (statusDot) statusDot.className = 'dot-live';
+      if (statusText) statusText.innerText = `Ollama · ${data.model || 'qwen2.5:7b'}`;
     }
+  } catch (e) {
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    if (statusDot) statusDot.className = 'dot-offline';
+    if (statusText) statusText.innerText = 'Ollama · Offline';
+  }
 }
 
 async function updateHealthStatus() {
-    try {
-      const res = await fetch('/api/health', { headers: getAuthHeaders() });
-      if (!res.ok) return;
-      const data = await res.json();
-      
-      const { ollama } = data;
-      const statusText = document.getElementById('statusText');
-      const statusDot = document.getElementById('statusDot');
-      
-      if (statusText && statusDot) {
-        if (ollama && ollama.status === 'online') {
-          statusText.innerText = `Ollama · ${ollama.model} (${ollama.latencyMs}ms)`;
-          statusDot.style.background = 'var(--accent)';
-        } else {
-          statusText.innerText = `Ollama · Offline`;
-          statusDot.style.background = 'var(--danger)';
-        }
+  try {
+    const res = await fetch('/api/health', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const { ollama } = data;
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+
+    if (statusText && statusDot) {
+      if (ollama && ollama.status === 'online') {
+        statusText.innerText = `Ollama · ${ollama.model} (${ollama.latencyMs}ms)`;
+        statusDot.style.background = 'var(--accent)';
+      } else {
+        statusText.innerText = `Ollama · Offline`;
+        statusDot.style.background = 'var(--danger)';
       }
-    } catch(err) {
-      console.log('Erro no health check', err);
     }
+  } catch (err) {
+    console.log('Erro no health check', err);
+  }
 }
 
 function onModelChange() {
@@ -491,14 +491,14 @@ function onModelChange() {
   const infoBox = document.getElementById('benchmarkInfo');
   if (!infoBox) return;
   const info = modelInfos[model] || { title: 'Modelo Customizado', text: 'Sem dados de benchmark para este modelo específico.' };
-  
+
   infoBox.innerHTML = `
     <h3 style="font-family: var(--mono); font-size: 13.5px; margin-bottom: 10px; margin-top: 16px; font-weight: 600;">Specs: ${info.title}</h3>
     <p style="font-size: 13px; color: var(--text-2); line-height: 1.6;">${info.text}</p>
   `;
 }
 
-async function saveSettings(){
+async function saveSettings() {
   if (currentUser && currentUser.role !== 'admin') {
     showToast('✕ Apenas Administradores podem salvar configurações.');
     return;
@@ -508,26 +508,26 @@ async function saveSettings(){
   const model = modelSelect ? modelSelect.value : 'qwen2.5:7b';
 
   try {
-      const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ model })
-      });
-      const data = await res.json();
-      if(data.success) {
-          const msg = document.getElementById('saveMsg');
-          if (msg) {
-            msg.classList.add('show');
-            setTimeout(() => msg.classList.remove('show'), 2400);
-          }
-          showToast(`✓ Modelo Ollama definido para ${model}`);
-          loadSettings();
-          loadAuditLogs();
-      } else {
-          showToast(`✕ ${data.error || 'Erro ao salvar'}`);
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ model })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const msg = document.getElementById('saveMsg');
+      if (msg) {
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 2400);
       }
-  } catch(e) {
-      showToast('✕ Erro de conexão com o servidor');
+      showToast(`✓ Modelo Ollama definido para ${model}`);
+      loadSettings();
+      loadAuditLogs();
+    } else {
+      showToast(`✕ ${data.error || 'Erro ao salvar'}`);
+    }
+  } catch (e) {
+    showToast('✕ Erro de conexão com o servidor');
   }
 }
 
@@ -549,17 +549,17 @@ function closeMobileSidebar() {
 
 /* ---------- toast ---------- */
 let toastTimer;
-function showToast(text){
-  const t=document.getElementById('toast');
-  t.innerText=text;
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.innerText = text;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
 // Keep the token in URL if user navigates manually
-if(window.location.pathname === '/' && CG_TOKEN) {
-    loadSettings();
+if (window.location.pathname === '/' && CG_TOKEN) {
+  loadSettings();
 }
 
 onModelChange();
@@ -567,13 +567,13 @@ onModelChange();
 function showDetails(index) {
   const result = window.currentScanResults[index];
   if (!result) return;
-  
+
   const modal = document.getElementById('detailsModal');
   const modalBody = document.getElementById('modalBody');
   const modalTitle = document.getElementById('modalTitle');
-  
+
   modalTitle.innerText = result.type === 'SCA' ? 'Auditoria de Dependência (SCA)' : 'Auditoria de Código (SAST)';
-  
+
   let html = '';
   if (result.type === 'SCA') {
     html = `
@@ -601,13 +601,13 @@ function showDetails(index) {
       </div>
     `;
   }
-  
+
   html += `
     <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
        <button class="btn-outline" onclick="document.getElementById('detailsModal').close()">Fechar</button>
     </div>
   `;
-  
+
   modalBody.innerHTML = html;
   modal.showModal();
 }
@@ -629,8 +629,9 @@ async function checkAuth() {
     }
   }
 
-  // Se não houver sessão ativa, faz login automático como Admin para facilidade de teste
-  await login('admin', 'admin123', true);
+  // Se não houver sessão ativa, garante que a interface reflita modo visitante e exiba a landing page
+  goToLanding();
+  updateUIForUser({ username: 'Visitante', role: 'auditor', name: 'Não Autenticado' });
 }
 
 async function login(username, password, silent = false) {
@@ -653,6 +654,7 @@ async function login(username, password, silent = false) {
     currentUser = data.user;
     updateUIForUser(currentUser);
     closeLoginModal();
+    goToApp();
     if (!silent) {
       showToast(`✓ Conectado como ${currentUser.name} (${currentUser.role.toUpperCase()})`);
     }
@@ -677,7 +679,7 @@ async function logout() {
   if (token) {
     try {
       await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() });
-    } catch (e) {}
+    } catch (e) { }
   }
   localStorage.removeItem('cg_auth_token');
   currentUser = null;
@@ -774,7 +776,7 @@ async function handleLoginSubmit(event) {
   await login(u, p, false);
 }
 
-window.openRequestAccessModal = function() {
+window.openRequestAccessModal = function () {
   closeLoginModal();
   const m = document.getElementById('requestAccessModal');
   if (m) {
@@ -783,7 +785,7 @@ window.openRequestAccessModal = function() {
   }
 }
 
-window.closeRequestAccessModal = function() {
+window.closeRequestAccessModal = function () {
   const m = document.getElementById('requestAccessModal');
   if (m) {
     m.classList.remove('active');
@@ -791,29 +793,29 @@ window.closeRequestAccessModal = function() {
   }
 }
 
-window.handleRequestAccessSubmit = async function(event) {
+window.handleRequestAccessSubmit = async function (event) {
   event.preventDefault();
   const name = document.getElementById('reqName').value.trim();
   const username = document.getElementById('reqUsername').value.trim();
   const password = document.getElementById('reqPassword').value;
   const role = document.getElementById('reqRole').value;
   const errEl = document.getElementById('reqErrorMsg');
-  
+
   if (errEl) errEl.innerText = '';
-  
+
   try {
     const res = await fetch('/api/auth/request-access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, username, password, role })
     });
-    
+
     const data = await res.json();
     if (!res.ok) {
       if (errEl) errEl.innerText = data.error || 'Erro ao solicitar acesso.';
       return;
     }
-    
+
     window.closeRequestAccessModal();
     showToast('✓ Sua solicitação foi enviada com sucesso e aguarda aprovação!');
   } catch (e) {
@@ -841,6 +843,13 @@ async function loadUsers() {
           <td style="padding:8px 10px; color:var(--text-2);">${u.name}</td>
           <td style="padding:8px 10px;"><span class="badge-role badge-${u.role}">${u.role.toUpperCase()}</span></td>
           <td style="padding:8px 10px; color:var(--text-3); font-family:var(--mono); font-size:11px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Nunca'}</td>
+          <td style="padding:8px 10px; text-align:right;">
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button onclick="changeUserPassword('${u.id}')" title="Mudar Senha" style="color:var(--text-2); font-size:14px; cursor:pointer; background:none; border:none; padding:4px;"><i class="ph-light ph-key"></i></button>
+              <button onclick="changeUserRole('${u.id}', '${u.role}')" title="Mudar Perfil" style="color:var(--text-2); font-size:14px; cursor:pointer; background:none; border:none; padding:4px;"><i class="ph-light ph-user-switch"></i></button>
+              <button onclick="deleteUser('${u.id}', '${u.username}')" title="Excluir" style="color:var(--danger); font-size:14px; cursor:pointer; background:none; border:none; padding:4px;"><i class="ph-light ph-trash"></i></button>
+            </div>
+          </td>
         </tr>
       `).join('');
     }
@@ -882,13 +891,122 @@ async function submitNewUser() {
   }
 }
 
-window.loadPendingRequests = async function() {
+window.closeEditUserModal = function() {
+  const m = document.getElementById('editUserModal');
+  if (m) {
+    m.classList.remove('active');
+    setTimeout(() => m.classList.add('hidden'), 300);
+  }
+};
+
+function resetEditModal() {
+  document.getElementById('editRoleForm').classList.add('hidden');
+  document.getElementById('editPasswordForm').classList.add('hidden');
+  document.getElementById('editDeleteForm').classList.add('hidden');
+  const btn = document.getElementById('editUserConfirmBtn');
+  btn.onclick = null;
+  btn.innerText = 'Confirmar';
+  btn.className = 'btn-accent';
+  btn.style.background = '';
+}
+
+window.deleteUser = function(id, username) {
+  resetEditModal();
+  document.getElementById('editUserTitle').innerText = 'Excluir Usuário';
+  document.getElementById('editUserDesc').innerHTML = `Tem certeza que deseja excluir <strong>${username}</strong>?`;
+  document.getElementById('editDeleteForm').classList.remove('hidden');
+  const btn = document.getElementById('editUserConfirmBtn');
+  btn.className = 'btn-danger';
+  btn.innerText = 'Excluir';
+  
+  btn.onclick = async () => {
+    try {
+      const res = await fetch(`/api/auth/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      if (res.ok) {
+        showToast(`✓ Usuário ${username} excluído.`);
+        closeEditUserModal();
+        loadUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao excluir usuário.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  
+  const m = document.getElementById('editUserModal');
+  m.classList.remove('hidden');
+  setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.changeUserRole = function(id, currentRole) {
+  resetEditModal();
+  document.getElementById('editUserTitle').innerText = 'Alterar Perfil';
+  document.getElementById('editUserDesc').innerText = 'Selecione o novo nível de acesso para este usuário.';
+  document.getElementById('editRoleForm').classList.remove('hidden');
+  document.getElementById('editRoleSelect').value = currentRole;
+  
+  const btn = document.getElementById('editUserConfirmBtn');
+  btn.onclick = async () => {
+    const newRole = document.getElementById('editRoleSelect').value;
+    try {
+      const res = await fetch(`/api/auth/users/${id}/role`, { 
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        showToast(`✓ Perfil atualizado.`);
+        closeEditUserModal();
+        loadUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao mudar perfil.');
+      }
+    } catch (e) { console.error(e); }
+  };
+  
+  const m = document.getElementById('editUserModal');
+  m.classList.remove('hidden');
+  setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.changeUserPassword = function(id) {
+  resetEditModal();
+  document.getElementById('editUserTitle').innerText = 'Alterar Senha';
+  document.getElementById('editUserDesc').innerText = 'Defina uma nova senha para o usuário.';
+  document.getElementById('editPasswordForm').classList.remove('hidden');
+  document.getElementById('editPasswordInput').value = '';
+  
+  const btn = document.getElementById('editUserConfirmBtn');
+  btn.onclick = async () => {
+    const newPass = document.getElementById('editPasswordInput').value;
+    if (newPass.length < 6) return alert('A senha precisa ter no mínimo 6 caracteres.');
+    try {
+      const res = await fetch(`/api/auth/users/${id}/password`, { 
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ password: newPass })
+      });
+      if (res.ok) {
+        showToast(`✓ Senha alterada.`);
+        closeEditUserModal();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao mudar senha.');
+      }
+    } catch (e) { console.error(e); }
+  };
+  
+  const m = document.getElementById('editUserModal');
+  m.classList.remove('hidden');
+  setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.loadPendingRequests = async function () {
   if (currentUser?.role !== 'admin') return;
   try {
     const res = await fetch('/api/auth/pending-requests', { headers: getAuthHeaders() });
     const tbody = document.getElementById('adminRequestsBody');
     if (!tbody) return;
-    
+
     if (!res.ok) {
       tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; color:var(--text-3); text-align:center;">Erro ao carregar solicitações.</td></tr>`;
       return;
@@ -898,7 +1016,7 @@ window.loadPendingRequests = async function() {
       tbody.innerHTML = `<tr><td colspan="5" style="padding:12px; color:var(--text-3); text-align:center;">Nenhuma solicitação pendente.</td></tr>`;
       return;
     }
-    
+
     tbody.innerHTML = reqs.map(r => `
       <tr>
         <td style="color:var(--text-1); font-family:var(--mono); font-size:12px;">${r.username}</td>
@@ -916,7 +1034,7 @@ window.loadPendingRequests = async function() {
   }
 }
 
-window.approveRequest = async function(id) {
+window.approveRequest = async function (id) {
   try {
     const res = await fetch(`/api/auth/approve/${id}`, { method: 'POST', headers: getAuthHeaders() });
     if (res.ok) {
@@ -927,12 +1045,12 @@ window.approveRequest = async function(id) {
     } else {
       showToast('✕ Erro ao aprovar usuário.');
     }
-  } catch(e) {
+  } catch (e) {
     showToast('✕ Falha na conexão.');
   }
 }
 
-window.rejectRequest = async function(id) {
+window.rejectRequest = async function (id) {
   try {
     const res = await fetch(`/api/auth/reject/${id}`, { method: 'POST', headers: getAuthHeaders() });
     if (res.ok) {
@@ -942,7 +1060,7 @@ window.rejectRequest = async function(id) {
     } else {
       showToast('✕ Erro ao rejeitar usuário.');
     }
-  } catch(e) {
+  } catch (e) {
     showToast('✕ Falha na conexão.');
   }
 }
@@ -1178,7 +1296,7 @@ function animatePlaygroundTabs() {
     // Only animate if the user hasn't hovered over the window
     const window = document.querySelector('.hero-ui-window');
     if (window && window.matches(':hover')) return;
-    
+
     currentIdx = (currentIdx + 1) % tabs.length;
     if (typeof switchPlaygroundTab === 'function') {
       switchPlaygroundTab(tabs[currentIdx]);
