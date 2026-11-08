@@ -39,6 +39,23 @@ describe('ParserUtils.extractValidationResult', () => {
     expect(result.correcao).toBe('const x = safe();');
   });
 
+  it('não inclui a cerca do bloco no patch quando o JSON também vem cercado por ```json', () => {
+    // Regressão: a regex antiga casava com a cerca de fechamento do bloco json
+    // e o patch começava com "```javascript", ficando sintaticamente inválido.
+    const input = [
+      '```json',
+      '{ "status": "True Positive", "gravidade": "Alta", "explicacao": "Vulnerável" }',
+      '```',
+      '',
+      '```javascript',
+      'db.query("SELECT * FROM users WHERE id = ?", [id], cb);',
+      '```',
+    ].join('\n');
+    const result = ParserUtils.extractValidationResult(input);
+    expect(result.status).toBe('True Positive');
+    expect(result.correcao).toBe('db.query("SELECT * FROM users WHERE id = ?", [id], cb);');
+  });
+
   it('extrai código como fallback quando True Positive e NÃO há crases', () => {
     const input = `{
       "status": "True Positive",

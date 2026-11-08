@@ -64,6 +64,23 @@ function extractBalancedJson(text: string): { json: string; endIndex: number } |
 
 export class ParserUtils {
   /**
+   * Extrai o conteúdo do primeiro bloco de código cercado por ``` que não seja
+   * JSON. Usado pela Fase 2 (chamada dedicada ao patch). Se não houver cercas,
+   * devolve o texto inteiro (aparado), ou undefined se estiver vazio.
+   */
+  public static extractCodeBlock(text: string): string | undefined {
+    const fenceRegex = /```([A-Za-z]*)[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
+    let match: RegExpExecArray | null;
+    while ((match = fenceRegex.exec(text)) !== null) {
+      if (match[1].toLowerCase() === 'json') continue;
+      const body = match[2].trim();
+      if (body) return body;
+    }
+    const plain = text.replace(/```[A-Za-z]*/g, '').trim();
+    return plain.length > 0 ? plain : undefined;
+  }
+
+  /**
    * Extrai o JSON e o código corrigido da resposta bruta do LLM.
    */
   public static extractValidationResult(llmResponse: string): AIValidationResult {
@@ -93,14 +110,30 @@ export class ParserUtils {
 
     // EXTRAÇÃO 2: O Código Corrigido (se houver)
     if (parsedResult.status === 'True Positive') {
-      const codeBlockRegex = /```(?:javascript|js)?\s*\n([\s\S]*?)\n\s*```/i;
-      const codeMatch = cleanString.match(codeBlockRegex);
+      // Percorre todos os blocos cercados por ``` e escolhe o primeiro que NÃO
+      // é o próprio JSON. Antes, uma única regex não-global casava com a cerca
+      // de FECHAMENTO de um bloco ```json, e o patch extraído passava a começar
+      // com a linha "```javascript" — o que o tornava sintaticamente inválido.
+      const fenceRegex = /```([A-Za-z]*)[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
+      let code: string | undefined;
+      let match: RegExpExecArray | null;
+      while ((match = fenceRegex.exec(cleanString)) !== null) {
+        const lang = match[1].toLowerCase();
+        const body = match[2];
+        if (lang === 'json' || body.includes(jsonStr)) continue;
+        code = body.trim();
+        break;
+      }
 
-      if (codeMatch && codeMatch[1]) {
-        parsedResult.correcao = codeMatch[1].trim();
+      if (code) {
+        parsedResult.correcao = code;
       } else {
-        // Fallback: se o LLM não usou crases mas colocou código depois do JSON
-        const afterJson = cleanString.substring(jsonEndIndex + 1).trim();
+        // Fallback: o LLM não usou crases mas colocou código depois do JSON.
+        // Remove uma eventual cerca de fechamento do bloco do JSON.
+        const afterJson = cleanString
+          .substring(jsonEndIndex + 1)
+          .replace(/^\s*```[ \t]*/, '')
+          .trim();
         if (afterJson.length > 5) { // Evita pegar espaços ou lixo
            parsedResult.correcao = afterJson;
         }
